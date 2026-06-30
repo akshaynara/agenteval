@@ -1,7 +1,7 @@
 // AgentEval CX Wind Tunnel — frontend logic
 
 // CHANGE THIS to your deployed backend URL (e.g. https://agenteval-api.onrender.com)
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = "https://agenteval-backend.onrender.com";
 
 let currentMode = "endpoint";
 
