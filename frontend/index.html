@@ -8,33 +8,44 @@
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   :root{
-    --bg:#0B0F14; --surface:#131920; --surface2:#0D1117; --border:#1E2A35;
-    --purple:#A855F7; --teal:#00D4AA; --text:#E8EDF2; --muted:#7A8FA0; --dim:#3D5466;
-    --red:#E24B4A; --amber:#EF9F27; --green:#1D9E75;
-    --mono:'IBM Plex Mono',monospace; --sans:'Inter',sans-serif;
+    --bg:#0B0F14;--surface:#131920;--surface2:#0D1117;--border:#1E2A35;
+    --purple:#A855F7;--teal:#00D4AA;--text:#E8EDF2;--muted:#7A8FA0;--dim:#3D5466;
+    --red:#E24B4A;--amber:#EF9F27;--green:#1D9E75;--orange:#F97316;
+    --mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;
   }
   body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;}
-
-  /* HEADER */
   header{background:var(--surface2);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
-  .logo{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--purple);letter-spacing:-0.5px;}
+  .logo{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--purple);}
   .logo span{color:var(--teal);}
   .logo-tag{font-family:var(--mono);font-size:10px;background:var(--border);color:var(--purple);padding:3px 8px;border-radius:4px;letter-spacing:1px;}
   .header-right{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);}
   .header-right a{color:var(--teal);text-decoration:none;}
-
   .wrap{max-width:1000px;margin:0 auto;padding:32px 28px 80px;}
 
-  .hero{text-align:center;margin-bottom:36px;}
-  .hero h1{font-size:32px;font-weight:600;letter-spacing:-1px;margin-bottom:10px;}
-  .hero h1 .grad{background:linear-gradient(90deg,var(--purple),var(--teal));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-  .hero p{color:var(--muted);font-size:16px;max-width:620px;margin:0 auto;}
+  /* VERSION TABS */
+  .version-tabs{display:flex;gap:0;margin-bottom:32px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .version-tab{flex:1;padding:16px;text-align:center;cursor:pointer;font-family:var(--mono);font-size:13px;font-weight:600;background:var(--surface2);color:var(--muted);border:none;transition:all 0.2s;letter-spacing:0.5px;}
+  .version-tab.active{background:var(--surface);color:var(--text);}
+  .version-tab.v1.active{border-bottom:2px solid var(--teal);}
+  .version-tab.v2.active{border-bottom:2px solid var(--purple);}
+  .version-tab .tab-label{font-size:15px;display:block;margin-bottom:4px;}
+  .version-tab .tab-desc{font-size:10px;color:var(--dim);font-weight:400;}
+  .version-tab.v2.active .tab-desc{color:var(--purple);opacity:0.7;}
+  .version-tab.v1.active .tab-desc{color:var(--teal);opacity:0.7;}
 
-  /* PANELS */
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  .hero{text-align:center;margin-bottom:28px;}
+  .hero h1{font-size:30px;font-weight:600;letter-spacing:-1px;margin-bottom:10px;}
+  .hero h1 .grad-teal{background:linear-gradient(90deg,var(--teal),#06B6D4);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero h1 .grad-purple{background:linear-gradient(90deg,var(--purple),#EC4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{color:var(--muted);font-size:15px;max-width:600px;margin:0 auto;}
+
   .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
   @media(max-width:760px){.config-grid{grid-template-columns:1fr;}}
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
-  .panel-title{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .panel-title{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
   .field{margin-bottom:14px;}
   .field:last-child{margin-bottom:0;}
   .field label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px;}
@@ -42,30 +53,40 @@
   .field textarea{font-family:var(--mono);font-size:12px;resize:vertical;min-height:90px;}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--purple);}
   .field .hint{font-size:11px;color:var(--dim);margin-top:5px;}
-
   .mode-toggle{display:flex;gap:8px;margin-bottom:14px;}
   .mode-btn{flex:1;padding:10px;text-align:center;font-size:13px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--muted);transition:all 0.15s;}
   .mode-btn.active{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,0.08);}
-
   .slider-row{display:flex;align-items:center;gap:12px;}
   .slider-row input[type=range]{flex:1;}
   .slider-val{font-family:var(--mono);font-size:14px;color:var(--teal);min-width:30px;text-align:right;}
 
-  .run-btn{width:100%;padding:15px;background:linear-gradient(90deg,var(--purple),var(--teal));color:#fff;border:none;border-radius:10px;font-family:var(--mono);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px;margin-top:4px;transition:opacity 0.15s;}
+  /* RAI category checkboxes */
+  .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .cat-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all 0.15s;}
+  .cat-item:hover{border-color:var(--purple);}
+  .cat-item input[type=checkbox]{accent-color:var(--purple);width:14px;height:14px;}
+  .cat-item label{font-size:12px;color:var(--muted);cursor:pointer;font-family:var(--mono);}
+  .cat-item.checked{border-color:rgba(168,85,247,0.4);background:rgba(168,85,247,0.05);}
+  .cat-item.checked label{color:var(--purple);}
+
+  .key-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+  .run-btn{width:100%;padding:15px;border:none;border-radius:10px;font-family:var(--mono);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px;margin-top:4px;transition:opacity 0.15s;color:#fff;}
+  .run-btn.v1-btn{background:linear-gradient(90deg,var(--teal),#06B6D4);}
+  .run-btn.v2-btn{background:linear-gradient(90deg,var(--purple),#EC4899);}
   .run-btn:hover{opacity:0.9;}
   .run-btn:disabled{opacity:0.4;cursor:not-allowed;}
 
-  .key-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
-
-  /* PROGRESS */
   .progress-area{margin-top:24px;}
   .status-line{font-family:var(--mono);font-size:13px;color:var(--teal);padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
-  .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite;}
+  .status-line.rai{color:var(--purple);border-color:rgba(168,85,247,0.3);}
+  .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+  .spinner.rai{border-top-color:var(--purple);}
   @keyframes spin{to{transform:rotate(360deg);}}
   .progress-bar-bg{height:6px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:20px;}
-  .progress-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--teal));transition:width 0.4s;}
+  .progress-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--teal),#06B6D4);transition:width 0.4s;border-radius:6px;}
+  .progress-bar-fill.rai{background:linear-gradient(90deg,var(--purple),#EC4899);}
 
-  /* REPORT */
+  /* RESULTS */
   .report{display:none;}
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
   @media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
@@ -73,8 +94,18 @@
   .stat-num{font-family:var(--mono);font-size:32px;font-weight:700;line-height:1;}
   .stat-label{font-size:11px;color:var(--muted);margin-top:8px;}
   .red{color:var(--red);}.amber{color:var(--amber);}.green{color:var(--green);}.purple{color:var(--purple);}.teal{color:var(--teal);}
-
   .findings-section h2{font-size:18px;font-weight:600;margin:24px 0 14px;}
+
+  /* Category pills for RAI */
+  .cat-pill{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;margin-right:6px;letter-spacing:0.5px;}
+  .cat-jailbreak{background:rgba(239,68,68,0.15);color:#F87171;}
+  .cat-harmful_content{background:rgba(249,115,22,0.15);color:#FB923C;}
+  .cat-bias{background:rgba(234,179,8,0.15);color:#FBBF24;}
+  .cat-pii_leakage{background:rgba(168,85,247,0.15);color:#C084FC;}
+  .cat-scope_violation{background:rgba(6,182,212,0.15);color:#22D3EE;}
+  .cat-prompt_injection{background:rgba(236,72,153,0.15);color:#F472B6;}
+  .cat-manipulation_compliance{background:rgba(16,185,129,0.15);color:#34D399;}
+
   .finding-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s;}
   .finding-card:hover{border-color:var(--purple);}
   .finding-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
@@ -86,7 +117,8 @@
   .sev-medium{background:#04342C;color:#5DCAA5;}
   .sev-low{background:var(--border);color:var(--muted);}
   .sev-pass{background:#173404;color:#97C459;}
-  .unexpected-tag{font-family:var(--mono);font-size:10px;background:rgba(168,85,247,0.15);color:var(--purple);padding:3px 9px;border-radius:4px;letter-spacing:0.5px;}
+  .unexpected-tag{font-family:var(--mono);font-size:10px;background:rgba(168,85,247,0.15);color:var(--purple);padding:3px 9px;border-radius:4px;}
+  .attack-tag{font-family:var(--mono);font-size:10px;background:rgba(239,68,68,0.15);color:#F87171;padding:3px 9px;border-radius:4px;}
   .finding-explain{font-size:13px;color:var(--muted);line-height:1.5;}
   .transcript{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
   .turn{margin-bottom:10px;font-size:13px;}
@@ -94,14 +126,16 @@
   .turn-user .turn-role{color:var(--purple);}
   .turn-agent .turn-role{color:var(--teal);}
   .turn-content{color:var(--text);padding:8px 12px;background:var(--surface2);border-radius:6px;border-left:2px solid var(--border);}
-
   .key-insight{background:rgba(168,85,247,0.08);border:1px solid var(--purple);border-radius:10px;padding:16px 18px;margin-top:20px;}
+  .key-insight.teal-insight{background:rgba(0,212,170,0.08);border-color:var(--teal);}
   .key-insight .ki-title{font-family:var(--mono);font-size:12px;color:var(--purple);letter-spacing:1px;margin-bottom:6px;}
+  .key-insight.teal-insight .ki-title{color:var(--teal);}
   .key-insight p{font-size:14px;color:var(--text);line-height:1.6;}
-
   .error-box{background:#2a1414;border:1px solid var(--red);border-radius:10px;padding:16px;color:#F09595;font-size:13px;font-family:var(--mono);margin-top:16px;}
-
   .footer-note{text-align:center;font-size:12px;color:var(--dim);margin-top:40px;font-family:var(--mono);}
+
+  /* RAI 3-stat grid */
+  .stats-grid-3{grid-template-columns:repeat(3,1fr);}
 </style>
 </head>
 <body>
@@ -114,101 +148,199 @@
 
 <div class="wrap">
 
-  <div class="hero">
-    <h1>Find the failures <span class="grad">before your customers do.</span></h1>
-    <p>Drop in your agent. AgentEval generates dozens of adversarial synthetic customers, runs them against your agent, and surfaces the failures you never thought to test for.</p>
+  <!-- VERSION TABS -->
+  <div class="version-tabs">
+    <button class="version-tab v1 active" onclick="switchTab('v1')">
+      <span class="tab-label">⚙️ Operational Testing</span>
+      <span class="tab-desc">Wrong routing · Tool failures · Context drift · False confidence</span>
+    </button>
+    <button class="version-tab v2" onclick="switchTab('v2')">
+      <span class="tab-label">🛡️ RAI Safety Red-Teaming</span>
+      <span class="tab-desc">Jailbreaks · PII leakage · Bias · Prompt injection · Manipulation</span>
+    </button>
   </div>
 
+  <!-- SHARED API KEY -->
   <div class="key-panel">
-    <div class="panel-title"><i>🔑</i> Your Anthropic API Key (Bring Your Own Key)</div>
+    <div class="panel-title">🔑 Your Anthropic API Key (Bring Your Own Key)</div>
     <div class="field">
       <input type="password" id="apiKey" placeholder="sk-ant-..." />
-      <div class="hint">Your key is used only for this test run and never stored. Get one at console.anthropic.com — a full test costs roughly $1–2 in API usage.</div>
+      <div class="hint">Used only for this test run, never stored. Get one at console.anthropic.com — a full test costs roughly $1–2.</div>
     </div>
   </div>
 
-  <div class="config-grid">
-    <div class="panel">
-      <div class="panel-title"><i>🎯</i> Test Domain</div>
-      <div class="field">
-        <label>What does your agent do?</label>
-        <input type="text" id="domain" value="Banking — Fraud & Card Services" placeholder="e.g. E-commerce order support" />
-        <div class="hint">Be specific — the personas are tailored to this.</div>
-      </div>
-      <div class="field">
-        <label>Number of synthetic customers</label>
-        <div class="slider-row">
-          <input type="range" id="numPersonas" min="3" max="50" value="8" />
-          <span class="slider-val" id="numPersonasVal">8</span>
-        </div>
-        <div class="hint">More personas = more coverage, higher API cost.</div>
-      </div>
-      <div class="field">
-        <label>Turns per conversation</label>
-        <div class="slider-row">
-          <input type="range" id="turns" min="2" max="8" value="4" />
-          <span class="slider-val" id="turnsVal">4</span>
-        </div>
-      </div>
+  <!-- ═══ V1: OPERATIONAL ═══ -->
+  <div class="tab-content active" id="tab-v1">
+    <div class="hero">
+      <h1>Find the failures <span class="grad-teal">before your customers do.</span></h1>
+      <p>Generate adversarial synthetic customers, run them against your agent, and surface operational failures you never thought to test for.</p>
     </div>
 
-    <div class="panel">
-      <div class="panel-title"><i>🤖</i> Your Agent</div>
-      <div class="mode-toggle">
-        <div class="mode-btn active" id="modeEndpoint" onclick="setMode('endpoint')">Live Endpoint</div>
-        <div class="mode-btn" id="modePrompt" onclick="setMode('prompt')">Prompt (Demo)</div>
-      </div>
-      <div id="endpointFields">
+    <div class="config-grid">
+      <div class="panel">
+        <div class="panel-title">🎯 Test Domain</div>
         <div class="field">
-          <label>Agent endpoint URL</label>
-          <input type="text" id="endpointUrl" placeholder="https://your-agent.com/chat" />
-          <div class="hint">Must accept POST {messages:[{role,content}]} and return JSON.</div>
+          <label>What does your agent do?</label>
+          <input type="text" id="domain" value="Banking — Fraud & Card Services" />
+          <div class="hint">Be specific — personas are tailored to this.</div>
         </div>
         <div class="field">
-          <label>Reply field name</label>
-          <input type="text" id="replyField" value="reply" />
-          <div class="hint">The JSON key holding the agent's text response.</div>
+          <label>Number of synthetic customers</label>
+          <div class="slider-row">
+            <input type="range" id="numPersonas" min="3" max="50" value="8" />
+            <span class="slider-val" id="numPersonasVal">8</span>
+          </div>
         </div>
-      </div>
-      <div id="promptFields" style="display:none;">
         <div class="field">
-          <label>Agent system prompt (Claude will simulate your agent)</label>
-          <textarea id="systemPrompt" placeholder="You are a banking customer service agent. You help with..."></textarea>
-          <div class="hint">No endpoint? Paste your agent's prompt and we'll simulate it.</div>
+          <label>Turns per conversation</label>
+          <div class="slider-row">
+            <input type="range" id="turns" min="2" max="8" value="4" />
+            <span class="slider-val" id="turnsVal">4</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🤖 Your Agent</div>
+        <div class="mode-toggle">
+          <div class="mode-btn active" id="modeEndpoint" onclick="setMode('endpoint')">Live Endpoint</div>
+          <div class="mode-btn" id="modePrompt" onclick="setMode('prompt')">Prompt (Demo)</div>
+        </div>
+        <div id="endpointFields">
+          <div class="field">
+            <label>Agent endpoint URL</label>
+            <input type="text" id="endpointUrl" placeholder="https://your-agent.com/chat" />
+          </div>
+          <div class="field">
+            <label>Reply field name</label>
+            <input type="text" id="replyField" value="reply" />
+          </div>
+        </div>
+        <div id="promptFields" style="display:none;">
+          <div class="field">
+            <label>Agent system prompt</label>
+            <textarea id="systemPrompt" placeholder="You are a banking customer service agent..."></textarea>
+            <div class="hint">No endpoint? Paste your agent's prompt and we'll simulate it.</div>
+          </div>
         </div>
       </div>
     </div>
+
+    <button class="run-btn v1-btn" id="runBtn" onclick="runTest()">RUN STRESS TEST →</button>
+
+    <div class="progress-area" id="v1Progress" style="display:none;">
+      <div class="status-line" id="v1StatusLine">
+        <span class="spinner" id="v1Spinner"></span>
+        <span id="v1StatusText">Starting...</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="v1ProgressFill"></div></div>
+    </div>
+    <div class="error-box" id="v1ErrorBox" style="display:none;"></div>
+    <div class="report" id="v1Report">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num red" id="v1StatFail">0</div><div class="stat-label">Failures found</div></div>
+        <div class="stat-card"><div class="stat-num purple" id="v1StatUnexp">0</div><div class="stat-label">You didn't test for</div></div>
+        <div class="stat-card"><div class="stat-num green" id="v1StatPass">0</div><div class="stat-label">Passed clean</div></div>
+        <div class="stat-card"><div class="stat-num teal" id="v1StatTotal">0</div><div class="stat-label">Total tested</div></div>
+      </div>
+      <div class="findings-section"><h2>Findings</h2><div id="v1FindingsList"></div></div>
+      <div class="key-insight teal-insight" id="v1Insight" style="display:none;"></div>
+    </div>
   </div>
 
-  <button class="run-btn" id="runBtn" onclick="runTest()">RUN STRESS TEST →</button>
-
-  <div class="progress-area" id="progressArea" style="display:none;">
-    <div class="status-line" id="statusLine"><span class="spinner"></span><span id="statusText">Starting...</span></div>
-    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
-  </div>
-
-  <div class="error-box" id="errorBox" style="display:none;"></div>
-
-  <div class="report" id="report">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num red" id="statFailures">0</div><div class="stat-label">Failures found</div></div>
-      <div class="stat-card"><div class="stat-num purple" id="statUnexpected">0</div><div class="stat-label">You didn't test for</div></div>
-      <div class="stat-card"><div class="stat-num green" id="statPassed">0</div><div class="stat-label">Passed clean</div></div>
-      <div class="stat-card"><div class="stat-num teal" id="statTotal">0</div><div class="stat-label">Total tested</div></div>
+  <!-- ═══ V2: RAI SAFETY ═══ -->
+  <div class="tab-content" id="tab-v2">
+    <div class="hero">
+      <h1>Test safety boundaries <span class="grad-purple">before attacks succeed in production.</span></h1>
+      <p>Generate targeted adversarial safety probes across 7 RAI categories and find out which ones break your agent before real attackers do.</p>
     </div>
 
-    <div class="findings-section">
-      <h2>Findings</h2>
-      <div id="findingsList"></div>
+    <div class="config-grid">
+      <div class="panel">
+        <div class="panel-title">🎯 Test Domain</div>
+        <div class="field">
+          <label>What does your agent do?</label>
+          <input type="text" id="raiDomain" value="Banking — Fraud & Card Services" />
+        </div>
+        <div class="field">
+          <label>Number of safety probes</label>
+          <div class="slider-row">
+            <input type="range" id="numProbes" min="3" max="50" value="7" />
+            <span class="slider-val" id="numProbesVal">7</span>
+          </div>
+          <div class="hint">Ideally 1+ probe per selected category.</div>
+        </div>
+        <div class="field">
+          <label>Turns per conversation</label>
+          <div class="slider-row">
+            <input type="range" id="raiTurns" min="2" max="8" value="4" />
+            <span class="slider-val" id="raiTurnsVal">4</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>RAI categories to test</label>
+          <div class="cat-grid" id="catGrid">
+            <div class="cat-item checked"><input type="checkbox" id="cat_jailbreak" value="jailbreak" checked /><label for="cat_jailbreak">Jailbreak</label></div>
+            <div class="cat-item checked"><input type="checkbox" id="cat_harmful_content" value="harmful_content" checked /><label for="cat_harmful_content">Harmful Content</label></div>
+            <div class="cat-item checked"><input type="checkbox" id="cat_bias" value="bias" checked /><label for="cat_bias">Bias</label></div>
+            <div class="cat-item checked"><input type="checkbox" id="cat_pii_leakage" value="pii_leakage" checked /><label for="cat_pii_leakage">PII Leakage</label></div>
+            <div class="cat-item checked"><input type="checkbox" id="cat_scope_violation" value="scope_violation" checked /><label for="cat_scope_violation">Scope Violation</label></div>
+            <div class="cat-item checked"><input type="checkbox" id="cat_prompt_injection" value="prompt_injection" checked /><label for="cat_prompt_injection">Prompt Injection</label></div>
+            <div class="cat-item checked"><input type="checkbox" id="cat_manipulation_compliance" value="manipulation_compliance" checked /><label for="cat_manipulation_compliance">Manipulation</label></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🤖 Your Agent</div>
+        <div class="mode-toggle">
+          <div class="mode-btn active" id="raiModeEndpoint" onclick="setRaiMode('endpoint')">Live Endpoint</div>
+          <div class="mode-btn" id="raiModePrompt" onclick="setRaiMode('prompt')">Prompt (Demo)</div>
+        </div>
+        <div id="raiEndpointFields">
+          <div class="field">
+            <label>Agent endpoint URL</label>
+            <input type="text" id="raiEndpointUrl" placeholder="https://your-agent.com/chat" />
+          </div>
+          <div class="field">
+            <label>Reply field name</label>
+            <input type="text" id="raiReplyField" value="reply" />
+          </div>
+        </div>
+        <div id="raiPromptFields" style="display:none;">
+          <div class="field">
+            <label>Agent system prompt</label>
+            <textarea id="raiSystemPrompt" placeholder="You are a banking customer service agent..."></textarea>
+            <div class="hint">No endpoint? Paste your agent's prompt and we'll simulate it.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="key-insight" id="keyInsight"></div>
+    <button class="run-btn v2-btn" id="raiRunBtn" onclick="runRaiTest()">LAUNCH SAFETY RED-TEAM →</button>
+
+    <div class="progress-area" id="raiProgress" style="display:none;">
+      <div class="status-line rai" id="raiStatusLine">
+        <span class="spinner rai" id="raiSpinner"></span>
+        <span id="raiStatusText">Starting...</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill rai" id="raiProgressFill"></div></div>
+    </div>
+    <div class="error-box" id="raiErrorBox" style="display:none;"></div>
+    <div class="report" id="raiReport">
+      <div class="stats-grid stats-grid-3">
+        <div class="stat-card"><div class="stat-num red" id="raiStatFail">0</div><div class="stat-label">Safety failures</div></div>
+        <div class="stat-card"><div class="stat-num green" id="raiStatPass">0</div><div class="stat-label">Boundaries held</div></div>
+        <div class="stat-card"><div class="stat-num purple" id="raiStatTotal">0</div><div class="stat-label">Total probes</div></div>
+      </div>
+      <div class="findings-section"><h2>Safety Findings</h2><div id="raiFindingsList"></div></div>
+      <div class="key-insight" id="raiInsight" style="display:none;"></div>
+    </div>
   </div>
 
-  <div class="footer-note">AgentEval CX Wind Tunnel · Built by Akshay Nara</div>
+  <div class="footer-note">AgentEval CX Wind Tunnel v2 · Built by Akshay Nara</div>
 
 </div>
-
 <script src="app.js"></script>
 </body>
 </html>
