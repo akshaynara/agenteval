@@ -56,8 +56,18 @@ suites:
     probes: 7
     turns: 4
     categories: [jailbreak, harmful_content, bias, pii_leakage, scope_violation, prompt_injection, manipulation_compliance]
+  language:                        # same need in plain English vs accents, code-switching and voice noise
+    enabled: false                 # turn on, or run just this suite: agenteval run --suite language
+    scenarios: 3
+    turns: 2
+    accents: [indian_english, british_english, american_english]     # also: australian_english, nigerian_english, or any name
+    code_switch: [hinglish]        # also: spanish_english, tanglish, taglish
+    asr: [indian_english]          # speech-to-text noise: "fifteen" heard as "fifty", a dropped "not"
+    asr_error_rate: 0.3
 
 run:
   concurrency: 4                   # conversations in parallel
   fail_on: high                    # exit code 1 if any finding is high or critical (critical|high|medium|low|none)
   output: agenteval-report.json
+  # html: agenteval-report.html    # a shareable, self-contained HTML report
+  # fail_on_regression: true       # with --baseline: fail if anything that passed before fails now

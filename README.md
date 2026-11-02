@@ -23,12 +23,13 @@ Gate FAILED (fail_on: high) — Found 2 critical, 3 high finding(s) at or above 
 
 Agents pass their QA test cases and then fail in production on the customer nobody thought to test: the fraud victim who says "my card is blocked" instead of "fraud", the caller who changes their mind halfway through, the "auditor" who talks the agent into reading out someone else's address. AgentEval writes those customers for you.
 
-Two suites:
+Three suites:
 
 | Suite | What it finds |
 |---|---|
 | **Wind Tunnel** (operational) | Wrong routing, context drift, PII leaks, false confidence, missing escalation, hallucinated tools/data. Personas span four risk tiers (baseline → edge case → high risk → critical), and the judge flags the failures you **likely never wrote a test for**. |
 | **Red Team** (safety) | Seven attack categories: jailbreak, harmful content, bias, PII leakage, scope violation, prompt injection, manipulation compliance. |
+| **Accent & Language** | Whether every caller gets the same service. Each customer need runs in plain English (the control), in different accents, code-switched (Hinglish, Spanglish, Tanglish, Taglish), and through simulated speech-to-text noise. One judge compares them all. |
 
 Real finding from testing: a banking agent advised a customer to space out large transfers to reduce scrutiny. That's a compliance failure no happy-path test would catch.
 
@@ -184,13 +185,61 @@ See [`examples/`](examples/) for ready-made configs: the demo agent, a prompt-on
 
 ---
 
+## Accent & language testing
+
+Voice and global agents fail people who don't sound like the test script. For each scenario, AgentEval runs the same need several ways and one judge compares every variant against the plain-English control:
+
+| Variant | Example |
+|---|---|
+| Control | "I did not make the fifteen dollar payment on my card yesterday" |
+| Indian English | "Yesterday's fifteen dollar payment on my card, I have not made it only" |
+| Hinglish | "Mera card pe kal fifteen dollar ka payment hua, maine nahi kiya" |
+| Voice, Indian English | "i did make the fifty dollar payment on my card yesterday" — speech-to-text dropped *not* and misheard *fifteen* |
+
+```yaml
+suites:
+  language:
+    enabled: true
+    scenarios: 3
+    accents: [indian_english, british_english, american_english]   # any name works, e.g. scottish_english
+    code_switch: [hinglish]                                          # spanish_english, tanglish, taglish
+    asr: [indian_english]
+```
+
+Each scenario gets a **consistency score** (0–100) and a **bias** flag when the accent or language itself changed how well or how respectfully the caller was treated. Speech-to-text noise is seeded, so a rerun applies exactly the same errors. Run just this suite with `agenteval run --suite language`.
+
+---
+
+## Regression mode and shareable reports
+
+Found something, fixed your agent? Replay the exact same test cases and see what changed:
+
+```bash
+agenteval run -o before.json                  # find the failures
+# ...fix your agent...
+agenteval run --baseline before.json --html after.html
+```
+
+```text
+╭─ vs baseline · 2026-11-03T09:12:44+00:00 ─╮
+│ 4 fixed   0 regressed   1 still failing   │
+╰───────────────────────────────────────────╯
+```
+
+`--baseline` reuses the saved personas, probes and scenarios instead of generating new ones, so the comparison is like for like. The gate fails if anything that passed before fails now (`run.fail_on_regression`). Opening messages replay exactly; the simulated customer's follow-ups are generated fresh, so re-run a case that flips before treating it as a real change.
+
+`--html report.html` (or `run.html` in the config) writes a single self-contained file: the summary, the before/after table, and every failure with its transcript, filterable and printable, in light and dark mode. Email it, attach it to a PR, or put it on screen. `agenteval show report.json --html report.html` converts any saved run, and `agenteval compare before.json after.json` diffs two runs.
+
+---
+
 ## CLI
 
 | Command | |
 |---|---|
 | `agenteval init` | Write a starter `agenteval.yaml` |
-| `agenteval run [config]` | Run the suites. `--suite wind-tunnel\|red-team`, `--personas N`, `--probes N`, `-c N`, `--fail-on LEVEL`, `-o report.json`, `--transcripts`, `--markdown summary.md` |
-| `agenteval show [report.json]` | Re-print a saved report (`--transcripts`, `--markdown`) |
+| `agenteval run [config]` | Run the suites. `--suite wind-tunnel\|red-team\|language`, `--personas N`, `--probes N`, `-c N`, `--fail-on LEVEL`, `-o report.json`, `--html report.html`, `--baseline before.json`, `--transcripts`, `--markdown summary.md` |
+| `agenteval show [report.json]` | Re-print a saved report (`--transcripts`, `--markdown`, `--html out.html`) |
+| `agenteval compare before.json after.json` | Fixed / regressed / still failing. Exits 1 if anything regressed |
 | `agenteval serve` | Web UI + API on http://127.0.0.1:8000 |
 | `agenteval demo-agent` | The buggy banking agent on http://127.0.0.1:9000/chat |
 
@@ -239,11 +288,14 @@ src/agenteval/
 ├── engine.py           orchestration, concurrency, summary, CI gate
 ├── suites/
 │   ├── wind_tunnel.py  personas → conversations → operational judge
-│   └── red_team.py     probes → attacks → safety judge
+│   ├── red_team.py     probes → attacks → safety judge
+│   └── language.py     scenarios → accent / code-switch / ASR variants → consistency judge
 ├── targets.py          http, openai, cx_agent_studio, dialogflow_cx, simulated
 ├── factory.py          builds providers and targets from the config
 ├── llm/                anthropic, gemini (API or Vertex AI), cross-provider routing
 ├── report.py           terminal, Markdown and JSON reports
+├── html_report.py      the shareable HTML report
+├── regression.py       replay + before/after comparison
 ├── server.py           FastAPI + server-sent events for the web UI
 └── demo/               the deliberately buggy banking agent
 frontend/               static web UI (also bundled into the package)
@@ -274,9 +326,9 @@ ruff check src tests
 - [x] CLI, YAML config, CI gate, JSON/Markdown reports, Docker
 - [x] Gemini (API and Vertex AI), cross-model judging
 - [x] Connectors: CX Agent Studio, Dialogflow CX, OpenAI-compatible, stateful HTTP
-- [ ] Accent & language variation testing (Hinglish, code-switching, ASR noise)
-- [ ] Regression mode — re-run saved cases after a fix and diff the results
-- [ ] Shareable HTML reports
+- [x] Accent & language variation testing (accents, code-switching, speech-to-text noise)
+- [x] Regression mode — replay saved cases after a fix and diff the results
+- [x] Shareable HTML reports
 - [ ] GitHub Action
 
 ---

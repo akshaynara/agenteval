@@ -134,15 +134,44 @@ class RedTeamSpec(BaseModel):
         return v or list(RAI_CATEGORIES)
 
 
+class LanguageSpec(BaseModel):
+    """Accent & language variation testing. Off by default: each scenario runs several conversations."""
+
+    enabled: bool = False
+    scenarios: int = Field(3, ge=1, le=50)
+    turns: int = Field(2, ge=1, le=8)
+    accents: list[str] = Field(default_factory=lambda: ["indian_english", "british_english", "american_english"])
+    code_switch: list[str] = Field(default_factory=lambda: ["hinglish"])
+    asr: list[str] = Field(default_factory=lambda: ["indian_english"])
+    asr_error_rate: float = Field(0.3, ge=0.0, le=1.0)
+
+    @field_validator("accents", "code_switch", "asr")
+    @classmethod
+    def _names(cls, v: list[str]) -> list[str]:
+        bad = [x for x in v if not re.fullmatch(r"[a-z][a-z_]{1,40}", x)]
+        if bad:
+            raise ValueError(f"profile names must be snake_case like 'indian_english', got {bad}")
+        return v
+
+    @model_validator(mode="after")
+    def _some(self) -> LanguageSpec:
+        if self.enabled and not (self.accents or self.code_switch or self.asr):
+            raise ValueError("enable at least one of accents, code_switch or asr")
+        return self
+
+
 class SuitesSpec(BaseModel):
     wind_tunnel: WindTunnelSpec = Field(default_factory=WindTunnelSpec)
     red_team: RedTeamSpec = Field(default_factory=RedTeamSpec)
+    language: LanguageSpec = Field(default_factory=LanguageSpec)
 
 
 class RunSpec(BaseModel):
     concurrency: int = Field(4, ge=1, le=32)
     fail_on: str = "high"
+    fail_on_regression: bool = True  # with --baseline: fail if anything that passed before fails now
     output: str | None = "agenteval-report.json"
+    html: str | None = None  # also write a shareable HTML report here
 
     @field_validator("fail_on")
     @classmethod
