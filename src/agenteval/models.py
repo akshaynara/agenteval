@@ -173,6 +173,79 @@ class RAITestReport(BaseModel):
     conversations: list[RAIConversationResult]
 
 
+# ─── Accent & language variation (V3) ──────────────────────────────────────
+
+
+class LanguageTestConfig(BaseModel):
+    """A full accent & language variation test request (web UI)."""
+
+    api_key: str = Field(..., description="User's API key for the chosen provider (BYOK)")
+    provider: Literal["anthropic", "gemini"] = "anthropic"
+    domain: str
+    agent: AgentConfig
+    num_scenarios: int = Field(3, ge=1, le=10)
+    turns_per_conversation: int = Field(2, ge=1, le=6)
+    accents: list[str] = Field(default_factory=lambda: ["indian_english", "british_english", "american_english"])
+    code_switch: list[str] = Field(default_factory=lambda: ["hinglish"])
+    asr: list[str] = Field(default_factory=lambda: ["indian_english"])
+    asr_error_rate: float = Field(0.3, ge=0.0, le=1.0)
+
+
+class LanguageVariant(BaseModel):
+    id: str
+    kind: Literal["control", "accent", "code_switch", "asr"]
+    profile: str  # e.g. indian_english, hinglish; "plain" for the control
+    label: str
+    opening_message: str
+
+
+class LanguageScenario(BaseModel):
+    id: str
+    name: str
+    intent: str
+    canonical_message: str
+    success_criteria: str
+    variants: list[LanguageVariant]
+
+
+class VariantResult(BaseModel):
+    variant: LanguageVariant
+    transcript: list[Turn]
+    handled_correctly: bool
+    issue: str = ""
+
+
+class LanguageFinding(BaseModel):
+    scenario_id: str
+    scenario_name: str
+    failed: bool
+    severity: Severity
+    title: str
+    explanation: str
+    consistency_score: int  # 0-100: how equally every variant was served
+    bias_detected: bool = False
+    failing_variants: list[str] = Field(default_factory=list)  # labels
+    control_failed: bool = False  # the plain-English control failed too: not a language issue
+
+
+class LanguageScenarioResult(BaseModel):
+    scenario: LanguageScenario
+    results: list[VariantResult]
+    finding: LanguageFinding
+
+
+class LanguageTestReport(BaseModel):
+    domain: str
+    total_scenarios: int
+    total_variants: int
+    total_failures: int
+    passed: int
+    profiles_tested: list[str]
+    average_consistency: float
+    findings: list[LanguageFinding]
+    scenarios: list[LanguageScenarioResult]
+
+
 class RunSummary(BaseModel):
     total_cases: int = 0
     total_failures: int = 0
@@ -187,6 +260,28 @@ class GateResult(BaseModel):
     fail_on: str | None = None
     passed: bool = True
     reason: str = ""
+
+
+class CaseComparison(BaseModel):
+    suite: str
+    case_id: str
+    case: str
+    status: Literal["fixed", "regressed", "still_failing", "still_passing", "new", "removed"]
+    before: str  # severity, or "pass"
+    after: str
+    title: str = ""
+
+
+class Comparison(BaseModel):
+    """How a run compares with an earlier one on the same test cases."""
+
+    baseline_started_at: str
+    baseline_name: str
+    fixed: int = 0
+    regressed: int = 0
+    still_failing: int = 0
+    still_passing: int = 0
+    cases: list[CaseComparison] = Field(default_factory=list)
 
 
 class RunReport(BaseModel):
@@ -204,5 +299,7 @@ class RunReport(BaseModel):
     duration_seconds: float
     wind_tunnel: TestReport | None = None
     red_team: RAITestReport | None = None
+    language: LanguageTestReport | None = None
     summary: RunSummary
+    comparison: Comparison | None = None
     gate: GateResult = Field(default_factory=GateResult)

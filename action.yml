@@ -1,0 +1,89 @@
+name: AgentEval
+description: Red-team and stress-test your conversational AI agent on every pull request. Fails the job on high-severity findings or regressions.
+author: Akshay Nara
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  config:
+    description: Path to agenteval.yaml
+    default: agenteval.yaml
+  suite:
+    description: "Which suites to run: all | wind-tunnel | red-team | language"
+    default: all
+  fail-on:
+    description: "Fail on findings at or above: critical | high | medium | low | none (default: the config's run.fail_on)"
+    default: ""
+  baseline:
+    description: A saved report to replay and compare against (regression mode)
+    default: ""
+  report:
+    description: Where to write the JSON report
+    default: agenteval-report.json
+  html:
+    description: Where to write the HTML report (empty to skip)
+    default: agenteval-report.html
+  upload:
+    description: Upload the reports as a workflow artifact
+    default: "true"
+  python-version:
+    description: Python version to run AgentEval with
+    default: "3.12"
+  args:
+    description: Extra arguments for `agenteval run`, e.g. "--personas 4 --probes 4"
+    default: ""
+
+outputs:
+  exit-code:
+    description: "0 gate passed · 1 gate failed · 2 config error · 3 run error"
+    value: ${{ steps.run.outputs.exit-code }}
+  report:
+    description: Path to the JSON report
+    value: ${{ inputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install AgentEval
+      shell: bash
+      run: pip install --quiet "${{ github.action_path }}[google]"
+
+    - name: Run AgentEval
+      id: run
+      shell: bash
+      env:
+        AE_CONFIG: ${{ inputs.config }}
+        AE_SUITE: ${{ inputs.suite }}
+        AE_FAIL_ON: ${{ inputs.fail-on }}
+        AE_BASELINE: ${{ inputs.baseline }}
+        AE_REPORT: ${{ inputs.report }}
+        AE_HTML: ${{ inputs.html }}
+        AE_ARGS: ${{ inputs.args }}
+      run: |
+        cmd=(agenteval run "$AE_CONFIG" --suite "$AE_SUITE" -o "$AE_REPORT")
+        [ -n "$AE_FAIL_ON" ] && cmd+=(--fail-on "$AE_FAIL_ON")
+        [ -n "$AE_BASELINE" ] && cmd+=(--baseline "$AE_BASELINE")
+        [ -n "$AE_HTML" ] && cmd+=(--html "$AE_HTML")
+        # shellcheck disable=SC2206
+        [ -n "$AE_ARGS" ] && cmd+=($AE_ARGS)
+        set +e
+        "${cmd[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        exit $code
+
+    - name: Upload reports
+      if: always() && inputs.upload == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: agenteval-report
+        path: |
+          ${{ inputs.report }}
+          ${{ inputs.html }}
+        if-no-files-found: ignore

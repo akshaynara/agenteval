@@ -3,8 +3,8 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agenteval"
-version = "0.4.0"
+name = "agenteval-cx"
+version = "1.0.0"
 description = "Red-team and stress-test conversational AI agents with synthetic customers and safety probes — from your terminal, your CI, or the browser."
 readme = "README.md"
 license = "MIT"
@@ -13,7 +13,7 @@ authors = [{ name = "Akshay Nara" }]
 requires-python = ">=3.10"
 keywords = ["llm", "evaluation", "red-teaming", "ai-safety", "agents", "testing", "conversational-ai"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",

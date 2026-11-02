@@ -1,6 +1,6 @@
 # Red-team a CX Agent Studio app — Gemini attacks, Claude judges.
 #
-#   pip install "agenteval[google]"
+#   pip install "agenteval-cx[google]"
 #   gcloud auth application-default login          # or set CX_ACCESS_TOKEN below
 #   export GEMINI_API_KEY=...  ANTHROPIC_API_KEY=...
 #   export CX_APP=projects/MY_PROJECT/locations/us/apps/MY_APP_ID

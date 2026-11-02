@@ -135,6 +135,26 @@
   .error-box{background:#2a1414;border:1px solid var(--red);border-radius:10px;padding:16px;color:#F09595;font-size:13px;font-family:var(--mono);margin-top:16px;}
   .footer-note{text-align:center;font-size:12px;color:var(--dim);margin-top:40px;font-family:var(--mono);}
 
+  /* V3: accent & language */
+  .version-tab.v3.active{border-bottom:2px solid var(--orange);}
+  .version-tab.v3.active .tab-desc{color:var(--orange);opacity:0.7;}
+  .run-btn.v3-btn{background:linear-gradient(90deg,var(--orange),#EAB308);}
+  .status-line.lang{color:var(--orange);border-color:rgba(249,115,22,0.3);}
+  .spinner.lang{border-top-color:var(--orange);}
+  .progress-bar-fill.lang{background:linear-gradient(90deg,var(--orange),#EAB308);}
+  .grad-orange{background:linear-gradient(90deg,var(--orange),#EAB308);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .cat-item.lang-item.checked{border-color:rgba(249,115,22,0.45);background:rgba(249,115,22,0.06);}
+  .cat-item.lang-item.checked label{color:var(--orange);}
+  .cat-item.lang-item input[type=checkbox]{accent-color:var(--orange);}
+  .variant-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .vchip{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:#173404;color:#97C459;}
+  .vchip.bad{background:#501313;color:#F09595;}
+  .vchip.control{outline:1px dashed var(--dim);}
+  .consistency{font-family:var(--mono);font-size:11px;color:var(--orange);}
+  .variant-head{font-family:var(--mono);font-size:11px;color:var(--orange);margin:14px 0 6px;letter-spacing:0.5px;}
+  .variant-issue{font-size:12px;color:#F09595;margin:-2px 0 8px;}
+  .platform-meta{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:4px;}
+
   /* RAI 3-stat grid */
   .stats-grid-3{grid-template-columns:repeat(3,1fr);}
 </style>
@@ -158,6 +178,10 @@
     <button class="version-tab v2" onclick="switchTab('v2')">
       <span class="tab-label">🛡️ RAI Safety Red-Teaming</span>
       <span class="tab-desc">Jailbreaks · PII leakage · Bias · Prompt injection · Manipulation</span>
+    </button>
+    <button class="version-tab v3" onclick="switchTab('v3')">
+      <span class="tab-label">🗣️ Accent &amp; Language</span>
+      <span class="tab-desc">Indian · British · Hinglish · Code-switching · Speech-to-text noise</span>
     </button>
   </div>
 
@@ -343,7 +367,113 @@
     </div>
   </div>
 
-  <div class="footer-note">AgentEval CX Wind Tunnel v2 · Built by Akshay Nara</div>
+  <!-- ═══ V3: ACCENT & LANGUAGE ═══ -->
+  <div class="tab-content" id="tab-v3">
+    <div class="hero">
+      <h1>Does your agent serve <span class="grad-orange">every caller equally well?</span></h1>
+      <p>The same customer need, asked in plain English, in different accents, in Hinglish, and through noisy speech-to-text. A failure that only appears for one kind of caller is the finding.</p>
+    </div>
+
+    <div class="config-grid">
+      <div class="panel">
+        <div class="panel-title">🎯 Test Domain</div>
+        <div class="field">
+          <label>What does your agent do?</label>
+          <input type="text" id="langDomain" value="Banking — Fraud &amp; Card Services" />
+        </div>
+        <div class="field">
+          <label>Scenarios (customer needs)</label>
+          <div class="slider-row">
+            <input type="range" id="numScenarios" min="1" max="10" value="3" />
+            <span class="slider-val" id="numScenariosVal">3</span>
+          </div>
+          <div class="hint">Each scenario runs once per variant you pick below, plus a plain-English control.</div>
+        </div>
+        <div class="field">
+          <label>Turns per conversation</label>
+          <div class="slider-row">
+            <input type="range" id="langTurns" min="1" max="6" value="2" />
+            <span class="slider-val" id="langTurnsVal">2</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Accents</label>
+          <div class="cat-grid" id="langAccents">
+            <div class="cat-item lang-item checked"><input type="checkbox" id="acc_indian_english" value="indian_english" checked /><label for="acc_indian_english">Indian English</label></div>
+            <div class="cat-item lang-item checked"><input type="checkbox" id="acc_british_english" value="british_english" checked /><label for="acc_british_english">British English</label></div>
+            <div class="cat-item lang-item checked"><input type="checkbox" id="acc_american_english" value="american_english" checked /><label for="acc_american_english">American English</label></div>
+            <div class="cat-item lang-item"><input type="checkbox" id="acc_australian_english" value="australian_english" /><label for="acc_australian_english">Australian English</label></div>
+            <div class="cat-item lang-item"><input type="checkbox" id="acc_nigerian_english" value="nigerian_english" /><label for="acc_nigerian_english">Nigerian English</label></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Code-switching</label>
+          <div class="cat-grid" id="langSwitch">
+            <div class="cat-item lang-item checked"><input type="checkbox" id="sw_hinglish" value="hinglish" checked /><label for="sw_hinglish">Hinglish</label></div>
+            <div class="cat-item lang-item"><input type="checkbox" id="sw_spanish_english" value="spanish_english" /><label for="sw_spanish_english">Spanglish</label></div>
+            <div class="cat-item lang-item"><input type="checkbox" id="sw_tanglish" value="tanglish" /><label for="sw_tanglish">Tanglish</label></div>
+            <div class="cat-item lang-item"><input type="checkbox" id="sw_taglish" value="taglish" /><label for="sw_taglish">Taglish</label></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Voice channel: speech-to-text noise</label>
+          <div class="cat-grid" id="langAsr">
+            <div class="cat-item lang-item checked"><input type="checkbox" id="asr_indian_english" value="indian_english" checked /><label for="asr_indian_english">Indian English voice</label></div>
+            <div class="cat-item lang-item"><input type="checkbox" id="asr_american_english" value="american_english" /><label for="asr_american_english">American English voice</label></div>
+          </div>
+          <div class="hint">Simulates what a voice bot actually receives: "fifteen" heard as "fifty", a dropped "not".</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🤖 Your Agent</div>
+        <div class="mode-toggle">
+          <div class="mode-btn active" id="langModeEndpoint" onclick="setLangMode('endpoint')">Live Endpoint</div>
+          <div class="mode-btn" id="langModePrompt" onclick="setLangMode('prompt')">Prompt (Demo)</div>
+        </div>
+        <div id="langEndpointFields">
+          <div class="field">
+            <label>Agent endpoint URL</label>
+            <input type="text" id="langEndpointUrl" placeholder="https://your-agent.com/chat" />
+          </div>
+          <div class="field">
+            <label>Reply field name</label>
+            <input type="text" id="langReplyField" value="reply" />
+          </div>
+        </div>
+        <div id="langPromptFields" style="display:none;">
+          <div class="field">
+            <label>Agent system prompt</label>
+            <textarea id="langSystemPrompt" placeholder="You are a banking customer service agent..."></textarea>
+            <div class="hint">No endpoint? Paste your agent's prompt and we'll simulate it.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn v3-btn" id="langRunBtn" onclick="runLangTest()">RUN ACCENT &amp; LANGUAGE TEST →</button>
+
+    <div class="progress-area" id="langProgress" style="display:none;">
+      <div class="status-line lang" id="langStatusLine">
+        <span class="spinner lang" id="langSpinner"></span>
+        <span id="langStatusText">Starting...</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill lang" id="langProgressFill"></div></div>
+    </div>
+    <div class="error-box" id="langErrorBox" style="display:none;"></div>
+    <div class="report" id="langReport">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num red" id="langStatFail">0</div><div class="stat-label">Scenarios with unequal service</div></div>
+        <div class="stat-card"><div class="stat-num green" id="langStatPass">0</div><div class="stat-label">Served everyone equally</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="langStatConsistency">0</div><div class="stat-label">Avg consistency / 100</div></div>
+        <div class="stat-card"><div class="stat-num purple" id="langStatVariants">0</div><div class="stat-label">Conversations run</div></div>
+      </div>
+      <div class="findings-section"><h2>Language Findings</h2><div id="langFindingsList"></div></div>
+      <div class="key-insight" id="langInsight" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="footer-note">AgentEval · Wind Tunnel · Red Team · Accent &amp; Language · Built by Akshay Nara</div>
 
 </div>
 <script>

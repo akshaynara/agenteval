@@ -207,7 +207,7 @@ document.querySelectorAll(".cat-item input[type=checkbox]").forEach(cb => {
 });
 
 function getSelectedCategories() {
-  return Array.from(document.querySelectorAll(".cat-item input[type=checkbox]:checked")).map(cb => cb.value);
+  return Array.from(document.querySelectorAll("#catGrid .cat-item input[type=checkbox]:checked")).map(cb => cb.value);
 }
 
 async function runRaiTest() {
@@ -338,3 +338,179 @@ function raiSetStatus(msg) { document.getElementById("raiStatusText").textConten
 function raiSetProgress(pct) { document.getElementById("raiProgressFill").style.width = pct + "%"; }
 function raiShowError(msg) { const b = document.getElementById("raiErrorBox"); b.textContent = msg; b.style.display = "block"; }
 function raiHideError() { document.getElementById("raiErrorBox").style.display = "none"; }
+
+
+// ─── V3: ACCENT & LANGUAGE ────────────────────────────────────────────────
+let currentLangMode = "endpoint";
+
+function setLangMode(mode) {
+  currentLangMode = mode;
+  document.getElementById("langModeEndpoint").classList.toggle("active", mode === "endpoint");
+  document.getElementById("langModePrompt").classList.toggle("active", mode === "prompt");
+  document.getElementById("langEndpointFields").style.display = mode === "endpoint" ? "block" : "none";
+  document.getElementById("langPromptFields").style.display = mode === "prompt" ? "block" : "none";
+}
+
+document.getElementById("numScenarios").addEventListener("input", e => {
+  document.getElementById("numScenariosVal").textContent = e.target.value;
+});
+document.getElementById("langTurns").addEventListener("input", e => {
+  document.getElementById("langTurnsVal").textContent = e.target.value;
+});
+
+function langChecked(gridId) {
+  return Array.from(document.querySelectorAll(`#${gridId} input[type=checkbox]:checked`)).map(cb => cb.value);
+}
+function langSetStatus(msg) { document.getElementById("langStatusText").textContent = msg; }
+function langSetProgress(pct) { document.getElementById("langProgressFill").style.width = pct + "%"; }
+function langShowError(msg) { const b = document.getElementById("langErrorBox"); b.textContent = msg; b.style.display = "block"; }
+function langHideError() { document.getElementById("langErrorBox").style.display = "none"; }
+
+async function runLangTest() {
+  const apiKey = document.getElementById("apiKey").value.trim().replace(/\s+/g, "");
+  const domain = document.getElementById("langDomain").value.trim();
+  const numScenarios = parseInt(document.getElementById("numScenarios").value);
+  const turns = parseInt(document.getElementById("langTurns").value);
+  const accents = langChecked("langAccents");
+  const codeSwitch = langChecked("langSwitch");
+  const asr = langChecked("langAsr");
+
+  if (!apiKey) { langShowError(`Please enter your ${PROVIDERS[currentProvider].label} API key.`); return; }
+  if (!domain) { langShowError("Please enter a test domain."); return; }
+  if (!accents.length && !codeSwitch.length && !asr.length) { langShowError("Pick at least one accent, language or voice profile."); return; }
+
+  const agent = { mode: currentLangMode, reply_field: "reply" };
+  if (currentLangMode === "endpoint") {
+    agent.endpoint_url = document.getElementById("langEndpointUrl").value.trim();
+    agent.reply_field = document.getElementById("langReplyField").value.trim() || "reply";
+    if (!agent.endpoint_url) { langShowError("Please enter your agent endpoint URL, or switch to Prompt mode."); return; }
+  } else {
+    agent.system_prompt = document.getElementById("langSystemPrompt").value.trim();
+    if (!agent.system_prompt) { langShowError("Please paste your agent's system prompt."); return; }
+  }
+
+  langHideError();
+  document.getElementById("langReport").style.display = "none";
+  document.getElementById("langFindingsList").innerHTML = "";
+  document.getElementById("langInsight").style.display = "none";
+  document.getElementById("langProgress").style.display = "block";
+  document.getElementById("langSpinner").style.display = "";
+  document.getElementById("langRunBtn").disabled = true;
+  langSetStatus("Connecting...");
+  langSetProgress(0);
+
+  const payload = {
+    api_key: apiKey, provider: currentProvider, domain, agent, num_scenarios: numScenarios,
+    turns_per_conversation: turns, accents, code_switch: codeSwitch, asr,
+  };
+
+  try {
+    const resp = await fetch(`${BACKEND_URL}/run-language-test`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}. Is the backend running?`);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let report = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop();
+      for (const part of parts) {
+        let event = "message", data = "";
+        for (const line of part.split("\n")) {
+          if (line.startsWith("event:")) event = line.slice(6).trim();
+          if (line.startsWith("data:")) data += line.slice(5).trim();
+        }
+        if (!data) continue;
+        const parsed = JSON.parse(data);
+        if (event === "status") {
+          langSetStatus(parsed.message);
+          if (parsed.current && parsed.total) langSetProgress(((parsed.current - 0.5) / parsed.total) * 100);
+          if (parsed.done) { document.getElementById("langSpinner").style.display = "none"; langSetProgress(100); }
+        } else if (event === "language_result") {
+          langAppendFinding(parsed.result);
+          langSetProgress((parsed.completed / parsed.total) * 100);
+          document.getElementById("langReport").style.display = "block";
+        } else if (event === "language_report") {
+          report = parsed.report;
+        } else if (event === "error") {
+          langShowError(parsed.message);
+          document.getElementById("langSpinner").style.display = "none";
+        }
+      }
+    }
+    if (report) langRenderReport(report);
+  } catch (err) {
+    langShowError(err.message || "Something went wrong.");
+  } finally {
+    document.getElementById("langRunBtn").disabled = false;
+  }
+}
+
+function langTranscriptHtml(turns) {
+  return turns.map(t => {
+    const meta = t.meta && t.role === "assistant"
+      ? `<div class="platform-meta">platform: ${escapeHtml(Object.entries(t.meta).filter(([k]) => k !== "error").map(([k, v]) => `${k}=${v}`).join(", "))}</div>` : "";
+    return `<div class="turn ${t.role === "user" ? "turn-user" : "turn-agent"}">
+      <div class="turn-role">${t.role === "user" ? "CUSTOMER" : "AGENT"}</div>
+      <div class="turn-content">${escapeHtml(t.content)}</div>${meta}</div>`;
+  }).join("");
+}
+
+function langAppendFinding(result) {
+  const f = result.finding;
+  const sev = f.failed ? f.severity : "pass";
+  const chips = result.results.map(r => {
+    const cls = r.handled_correctly ? "" : " bad";
+    const ctl = r.variant.kind === "control" ? " control" : "";
+    return `<span class="vchip${cls}${ctl}" title="${escapeHtml(r.issue || "")}">${r.handled_correctly ? "✓" : "✗"} ${escapeHtml(r.variant.label)}</span>`;
+  }).join("");
+  const variants = result.results.map(r => `
+    <div class="variant-head">${escapeHtml(r.variant.label.toUpperCase())}${r.handled_correctly ? "" : " — ✗"}</div>
+    ${r.issue ? `<div class="variant-issue">${escapeHtml(r.issue)}</div>` : ""}
+    ${langTranscriptHtml(r.transcript)}`).join("");
+  const card = document.createElement("div");
+  card.className = "finding-card";
+  card.dataset.rank = severityRank(sev);
+  card.innerHTML = `
+    <div class="finding-head">
+      <span class="sev-badge sev-${sev}">${sev.toUpperCase()}</span>
+      ${f.bias_detected ? '<span class="attack-tag">BIAS</span>' : ""}
+      <span class="finding-title">${escapeHtml(f.title)}</span>
+      <span class="consistency">consistency ${f.consistency_score}/100</span>
+    </div>
+    <div class="finding-persona">${escapeHtml(result.scenario.name)} · ${result.results.length} variants</div>
+    <div class="finding-explain">${escapeHtml(f.explanation || "")}</div>
+    <div class="variant-chips">${chips}</div>
+    <div class="transcript">${variants}</div>`;
+  card.onclick = e => {
+    if (e.target.closest(".transcript")) return;
+    const t = card.querySelector(".transcript");
+    t.style.display = t.style.display === "block" ? "none" : "block";
+  };
+  const list = document.getElementById("langFindingsList");
+  const after = Array.from(list.children).find(c => parseInt(c.dataset.rank) > severityRank(sev));
+  list.insertBefore(card, after || null);
+}
+
+function langRenderReport(report) {
+  document.getElementById("langReport").style.display = "block";
+  document.getElementById("langStatFail").textContent = report.total_failures;
+  document.getElementById("langStatPass").textContent = report.passed;
+  document.getElementById("langStatConsistency").textContent = Math.round(report.average_consistency);
+  document.getElementById("langStatVariants").textContent = report.total_variants;
+  const ki = document.getElementById("langInsight");
+  const failing = {};
+  report.findings.forEach(f => f.failing_variants.forEach(v => { failing[v] = (failing[v] || 0) + 1; }));
+  const worst = Object.entries(failing).sort((a, b) => b[1] - a[1])[0];
+  if (report.total_failures > 0) {
+    ki.innerHTML = `<div class="ki-title">UNEQUAL SERVICE</div><p><strong>${report.total_failures} of ${report.total_scenarios} customer needs were handled worse for some callers than for plain English.</strong>${worst ? ` Hardest hit: <strong>${escapeHtml(worst[0])}</strong> (${worst[1]} scenario${worst[1] > 1 ? "s" : ""}).` : ""} Your plain-English tests would have passed every one of these.</p>`;
+  } else {
+    ki.innerHTML = `<div class="ki-title">SERVED EVERYONE EQUALLY</div><p>Every accent, language mix and noisy transcript was handled as well as plain English, with an average consistency of ${Math.round(report.average_consistency)}/100. Try more scenarios, or add voice noise for more profiles.</p>`;
+  }
+  ki.style.display = "block";
+}

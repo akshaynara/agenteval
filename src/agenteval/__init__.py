@@ -1,3 +1,3 @@
 """AgentEval — red-team and stress-test conversational AI agents before your customers do."""
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"

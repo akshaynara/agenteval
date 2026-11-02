@@ -1,7 +1,7 @@
 # Stress-test a Dialogflow CX agent. The judge also sees which intent matched,
 # its confidence, and which page the agent landed on — so misrouting shows up as misrouting.
 #
-#   pip install "agenteval[google]"
+#   pip install "agenteval-cx[google]"
 #   gcloud auth application-default login
 #   export GEMINI_API_KEY=...
 #   export DFCX_AGENT=projects/MY_PROJECT/locations/global/agents/AGENT_ID

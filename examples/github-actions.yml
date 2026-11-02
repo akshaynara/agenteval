@@ -1,6 +1,6 @@
-# Example: red-team your agent on every pull request.
-# Copy to .github/workflows/agenteval.yml in YOUR agent's repository.
-# Add ANTHROPIC_API_KEY as a repository secret.
+# Red-team your agent on every pull request.
+# Copy to .github/workflows/agenteval.yml in YOUR agent's repository,
+# and add ANTHROPIC_API_KEY (or GEMINI_API_KEY) as a repository secret.
 
 name: AgentEval
 
@@ -12,21 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install "agenteval @ git+https://github.com/akshaynara/agenteval"
 
       # Start your agent however you normally do, e.g.:
       # - run: docker compose up -d my-agent
 
-      - name: Run AgentEval
+      - uses: akshaynara/agenteval@v1
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: agenteval run agenteval.yaml   # exits 1 if the fail_on gate trips; summary lands in the job page
-
-      - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: agenteval-report
-          path: agenteval-report.json
+          config: agenteval.yaml
+          # fail-on: high                 # default: run.fail_on from the config
+          # baseline: agenteval-baseline.json   # regression mode: replay and compare
+          # args: --personas 4 --probes 4
+
+      # The job fails when the gate trips. The Markdown summary is on the job page,
+      # and the JSON + HTML reports are uploaded as the "agenteval-report" artifact.

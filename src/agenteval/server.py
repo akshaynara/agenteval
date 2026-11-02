@@ -4,6 +4,8 @@ Endpoints (unchanged from v2, so the hosted frontend keeps working):
   GET  /health         health check
   POST /run-test       Wind Tunnel (operational) test, SSE
   POST /run-rai-test   Red-team (safety) test, SSE
+  POST /run-language-test  Accent & language variation test, SSE
+  GET  /language-profiles  Built-in accent / code-switch / ASR profiles
   GET  /               the web UI, when the frontend files are available
 
 Bring Your Own Key: the user's API key is passed per request and never stored.
@@ -27,7 +29,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from . import __version__, engine
 from .llm import LLM, LLMError, create_llm
-from .models import RAITestConfig, TestConfig
+from .models import LanguageTestConfig, RAITestConfig, TestConfig
 from .targets import TargetError, target_from_agent_config
 
 WEB_CONCURRENCY = int(os.environ.get("AGENTEVAL_WEB_CONCURRENCY", "3"))
@@ -126,6 +128,28 @@ def create_app(llm_factory: Callable[[str, str], LLM] = _default_llm_factory) ->
                                 config.turns_per_conversation, concurrency=_concurrency(config.provider), on_event=on_event)
 
         return stream(job, "RAI test complete.")
+
+    @app.post("/run-language-test")
+    def run_language_test(config: LanguageTestConfig) -> StreamingResponse:
+        def job(on_event: engine.EventHandler) -> None:
+            llm = app.state.llm_factory(config.api_key, config.provider)
+            target = target_from_agent_config(config.agent, llm)
+            engine.run_language(llm, target, config.domain, config.num_scenarios, config.turns_per_conversation,
+                                accents=config.accents, code_switch=config.code_switch, asr=config.asr,
+                                asr_error_rate=config.asr_error_rate, concurrency=_concurrency(config.provider),
+                                on_event=on_event)
+
+        return stream(job, "Language test complete.")
+
+    @app.get("/language-profiles")
+    def language_profiles() -> dict[str, Any]:
+        from .suites.language import ACCENT_PROFILES, ASR_CONFUSIONS, CODE_SWITCH_PROFILES
+
+        return {
+            "accents": {k: v["label"] for k, v in ACCENT_PROFILES.items()},
+            "code_switch": {k: v["label"] for k, v in CODE_SWITCH_PROFILES.items()},
+            "asr": sorted(ASR_CONFUSIONS),
+        }
 
     web = _find_web_dir()
     if web:

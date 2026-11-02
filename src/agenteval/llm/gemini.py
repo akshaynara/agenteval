@@ -1,6 +1,6 @@
 """Google Gemini provider — Gemini API (API key) or Vertex AI (Application Default Credentials).
 
-Install with:  pip install "agenteval[google]"
+Install with:  pip install "agenteval-cx[google]"
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def _import_genai():
         from google import genai
         from google.genai import errors, types
     except ImportError as e:
-        raise LLMError('The Gemini provider needs the Google SDK: pip install "agenteval[google]"') from e
+        raise LLMError('The Gemini provider needs the Google SDK: pip install "agenteval-cx[google]"') from e
     return genai, types, errors
 
 

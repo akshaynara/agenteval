@@ -72,3 +72,21 @@ def test_serves_ui_and_health():
 def test_validation_matches_v2_limits():
     r = client().post("/run-test", json={"api_key": "k", "domain": "d", "agent": AGENT, "num_personas": 99})
     assert r.status_code == 422
+
+
+def test_run_language_test_streams_results():
+    r = client().post("/run-language-test", json={"api_key": "k", "domain": "Banking", "agent": AGENT,
+                                                  "num_scenarios": 2, "accents": ["british_english"],
+                                                  "code_switch": ["hinglish"], "asr": []})
+    events = parse_sse(r.text)
+    names = [n for n, _ in events]
+    assert names.count("language_result") == 2 and "scenarios" in names
+    report = dict(events)["language_report"]["report"]
+    assert report["total_failures"] == 2 and report["average_consistency"] == 55
+    assert events[-1] == ("status", {"message": "Language test complete.", "done": True})
+
+
+def test_language_profiles_endpoint():
+    data = client().get("/language-profiles").json()
+    assert data["accents"]["indian_english"] == "Indian English"
+    assert "hinglish" in data["code_switch"] and "indian_english" in data["asr"]
