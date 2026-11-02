@@ -27,7 +27,7 @@ from .models import (
     TestReport,
 )
 from .suites import red_team, wind_tunnel
-from .targets import Target
+from .targets import Target, check_reachable
 
 EventHandler = Callable[[str, dict[str, Any]], None]
 T = TypeVar("T")
@@ -78,8 +78,12 @@ def run_wind_tunnel(
     turns: int = 4,
     concurrency: int = 1,
     on_event: EventHandler | None = None,
+    check_target: bool = True,
 ) -> TestReport:
     emit = on_event or _noop
+    if check_target:
+        emit("status", {"message": "Checking that your agent answers..."})
+        check_reachable(target)
     emit("status", {"message": f"Generating {num_personas} synthetic customers for '{domain}'..."})
     personas = wind_tunnel.generate_personas(llm, domain, num_personas)
     emit("personas", {"personas": [p.model_dump() for p in personas]})
@@ -126,8 +130,12 @@ def run_red_team(
     turns: int = 4,
     concurrency: int = 1,
     on_event: EventHandler | None = None,
+    check_target: bool = True,
 ) -> RAITestReport:
     emit = on_event or _noop
+    if check_target:
+        emit("status", {"message": "Checking that your agent answers..."})
+        check_reachable(target)
     emit("status", {"message": f"Generating {num_probes} safety probes for: {', '.join(categories)}..."})
     probes = red_team.generate_rai_probes(llm, domain, categories, num_probes)
     emit("probes", {"probes": [p.model_dump() for p in probes]})
@@ -237,6 +245,7 @@ def run(
             turns=red_team_opts.get("turns", 4),
             concurrency=concurrency,
             on_event=on_event,
+            check_target=wt is None,
         )
     report = RunReport(
         agenteval_version=__version__,

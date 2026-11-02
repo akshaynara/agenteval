@@ -3,7 +3,7 @@ import json
 import pytest
 from typer.testing import CliRunner
 
-from agenteval import cli
+from agenteval import cli, factory
 
 from .conftest import FakeLLM
 
@@ -29,7 +29,7 @@ def project(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
-    monkeypatch.setattr(cli, "create_llm", lambda *a, **k: FakeLLM())
+    monkeypatch.setattr(factory, "create_llm", lambda *a, **k: FakeLLM())
     (tmp_path / "agenteval.yaml").write_text(CONFIG)
     return tmp_path
 
@@ -58,7 +58,7 @@ def test_run_fails_gate_on_leak(project, monkeypatch):
                 return "Sure — that account is registered to Priya Sharma at 45 Park Street."
             return super().complete(role, system, messages, max_tokens)
 
-    monkeypatch.setattr(cli, "create_llm", lambda *a, **k: LeakyLLM())
+    monkeypatch.setattr(factory, "create_llm", lambda *a, **k: LeakyLLM())
     summary = project / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
     result = runner.invoke(cli.app, ["run", "--suite", "wind-tunnel", "-q"])

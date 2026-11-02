@@ -22,7 +22,7 @@ def parse_sse(text: str) -> list[tuple[str, dict]]:
 
 
 def client() -> TestClient:
-    return TestClient(create_app(llm_factory=lambda key: FakeLLM()))
+    return TestClient(create_app(llm_factory=lambda key, provider: FakeLLM()))
 
 
 AGENT = {"mode": "prompt", "system_prompt": "You are a bank agent."}
@@ -52,7 +52,7 @@ def test_run_rai_test_keeps_v2_event_contract():
 
 
 def test_provider_errors_reach_the_ui():
-    def bad_key(_key):
+    def bad_key(_key, _provider):
         raise LLMError("Anthropic rejected the API key (401).")
 
     c = TestClient(create_app(llm_factory=bad_key))

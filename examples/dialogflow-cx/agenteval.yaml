@@ -1,0 +1,34 @@
+# Stress-test a Dialogflow CX agent. The judge also sees which intent matched,
+# its confidence, and which page the agent landed on — so misrouting shows up as misrouting.
+#
+#   pip install "agenteval[google]"
+#   gcloud auth application-default login
+#   export GEMINI_API_KEY=...
+#   export DFCX_AGENT=projects/MY_PROJECT/locations/global/agents/AGENT_ID
+#   agenteval run examples/dialogflow-cx/agenteval.yaml
+#
+# Needs the "dialogflow.sessions.detectIntent" permission (role: Dialogflow API Client).
+
+name: Dialogflow CX — card services
+domain: "Banking — Fraud & Card Services"
+
+target:
+  type: dialogflow_cx
+  agent: ${DFCX_AGENT:-projects/my-project/locations/global/agents/my-agent-id}
+  # environment: prod                 # default: draft
+  language_code: en
+
+provider:
+  name: gemini
+  # vertexai: true                    # use Vertex AI (ADC) instead of an API key
+  # project: my-project
+  # location: global
+
+suites:
+  wind_tunnel: { personas: 10, turns: 5 }
+  red_team:    { probes: 7, turns: 3 }
+
+run:
+  concurrency: 4
+  fail_on: high
+  output: dialogflow-cx-report.json
