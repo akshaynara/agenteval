@@ -7,6 +7,27 @@ const BACKEND_URL = window.AGENTEVAL_API_URL ||
 
 // switchTab is defined inline in index.html (before this script loads)
 
+// ─── PROVIDER (shared by both tabs) ───────────────────────────────────────
+let currentProvider = "anthropic";
+const PROVIDERS = {
+  anthropic: {
+    label: "Anthropic", placeholder: "sk-ant-...",
+    hint: "Used only for this test run, never stored. Get one at console.anthropic.com — a full test costs roughly $1–2.",
+  },
+  gemini: {
+    label: "Gemini", placeholder: "AIza...",
+    hint: "Used only for this test run, never stored. Get a free key at aistudio.google.com/apikey — free-tier rate limits apply, so keep runs small.",
+  },
+};
+
+function setProvider(p) {
+  currentProvider = p;
+  document.getElementById("providerAnthropic").classList.toggle("active", p === "anthropic");
+  document.getElementById("providerGemini").classList.toggle("active", p === "gemini");
+  document.getElementById("apiKey").placeholder = PROVIDERS[p].placeholder;
+  document.getElementById("apiKeyHint").textContent = PROVIDERS[p].hint;
+}
+
 // ─── V1: OPERATIONAL MODE ─────────────────────────────────────────────────
 let currentMode = "endpoint";
 
@@ -38,7 +59,7 @@ async function runTest() {
   const numPersonas = parseInt(document.getElementById("numPersonas").value);
   const turns = parseInt(document.getElementById("turns").value);
 
-  if (!apiKey) { v1ShowError("Please enter your Anthropic API key."); return; }
+  if (!apiKey) { v1ShowError(`Please enter your ${PROVIDERS[currentProvider].label} API key.`); return; }
   if (!domain) { v1ShowError("Please enter a test domain."); return; }
 
   const agent = { mode: currentMode, reply_field: "reply" };
@@ -59,7 +80,7 @@ async function runTest() {
   v1SetStatus("Connecting...");
   v1SetProgress(0);
 
-  const payload = { api_key: apiKey, domain, agent, num_personas: numPersonas, turns_per_conversation: turns };
+  const payload = { api_key: apiKey, provider: currentProvider, domain, agent, num_personas: numPersonas, turns_per_conversation: turns };
 
   try {
     const resp = await fetch(`${BACKEND_URL}/run-test`, {
@@ -196,7 +217,7 @@ async function runRaiTest() {
   const turns = parseInt(document.getElementById("raiTurns").value);
   const categories = getSelectedCategories();
 
-  if (!apiKey) { raiShowError("Please enter your Anthropic API key."); return; }
+  if (!apiKey) { raiShowError(`Please enter your ${PROVIDERS[currentProvider].label} API key.`); return; }
   if (!domain) { raiShowError("Please enter a test domain."); return; }
   if (categories.length === 0) { raiShowError("Please select at least one RAI category."); return; }
 
@@ -218,7 +239,7 @@ async function runRaiTest() {
   raiSetStatus("Connecting...");
   raiSetProgress(0);
 
-  const payload = { api_key: apiKey, domain, agent, num_probes: numProbes, turns_per_conversation: turns, categories };
+  const payload = { api_key: apiKey, provider: currentProvider, domain, agent, num_probes: numProbes, turns_per_conversation: turns, categories };
 
   try {
     const resp = await fetch(`${BACKEND_URL}/run-rai-test`, {

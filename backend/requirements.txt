@@ -1,2 +1,2 @@
-# Installs the agenteval package from the repo root (the Render build runs from backend/).
-..
+# Installs the agenteval package (with Gemini support) from the repo root; the Render build runs from backend/.
+..[google]

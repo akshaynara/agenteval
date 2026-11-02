@@ -163,10 +163,14 @@
 
   <!-- SHARED API KEY -->
   <div class="key-panel">
-    <div class="panel-title">🔑 Your Anthropic API Key (Bring Your Own Key)</div>
+    <div class="panel-title">🔑 Your API Key (Bring Your Own Key)</div>
+    <div class="mode-toggle" style="margin-bottom:10px">
+      <div class="mode-btn active" id="providerAnthropic" onclick="setProvider('anthropic')">Claude (Anthropic)</div>
+      <div class="mode-btn" id="providerGemini" onclick="setProvider('gemini')">Gemini (Google) · free tier</div>
+    </div>
     <div class="field">
-      <input type="password" id="apiKey" placeholder="sk-ant-..." />
-      <div class="hint">Used only for this test run, never stored. Get one at console.anthropic.com — a full test costs roughly $1–2.</div>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
+      <div class="hint" id="apiKeyHint">Used only for this test run, never stored. Get one at console.anthropic.com — a full test costs roughly $1–2.</div>
     </div>
   </div>
 

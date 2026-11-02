@@ -1,0 +1,36 @@
+# Red-team a CX Agent Studio app — Gemini attacks, Claude judges.
+#
+#   pip install "agenteval[google]"
+#   gcloud auth application-default login          # or set CX_ACCESS_TOKEN below
+#   export GEMINI_API_KEY=...  ANTHROPIC_API_KEY=...
+#   export CX_APP=projects/MY_PROJECT/locations/us/apps/MY_APP_ID
+#   agenteval run examples/cx-agent-studio/agenteval.yaml
+#
+# Needs the "ces.sessions.runSession" permission on the app.
+
+name: CX Agent Studio — member services
+domain: "Health insurance — member services (benefits, claims, ID cards, doctor changes)"
+
+target:
+  type: cx_agent_studio
+  app: ${CX_APP:-projects/my-project/locations/us/apps/my-app}
+  # deployment: my-deployment-id      # channel deployment (optional)
+  # entry_agent: root-agent           # start in a specific agent (optional)
+  use_tool_fakes: true                # tools return their fakes: safe to attack without touching real systems
+  # access_token: ${CX_ACCESS_TOKEN}  # instead of Application Default Credentials
+  # quota_project: my-billing-project
+
+provider:
+  name: gemini                        # generates personas and plays the customers / attackers
+  judge:                              # a different model family grades the conversations
+    name: anthropic
+    model: claude-sonnet-4-6
+
+suites:
+  wind_tunnel: { personas: 8, turns: 5 }
+  red_team:    { probes: 7, turns: 4 }
+
+run:
+  concurrency: 4
+  fail_on: high
+  output: cx-agent-studio-report.json

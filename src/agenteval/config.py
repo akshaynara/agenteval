@@ -24,36 +24,90 @@ class ConfigError(ValueError):
     pass
 
 
+TARGET_TYPES = ("http", "simulated", "openai", "dialogflow_cx", "cx_agent_studio")
+
+
 class TargetSpec(BaseModel):
-    type: Literal["http", "simulated"] = "http"
+    type: Literal["http", "simulated", "openai", "dialogflow_cx", "cx_agent_studio"] = "http"
+    timeout: float | None = Field(None, gt=0)
+    headers: dict[str, str] = Field(default_factory=dict)
+    body: dict[str, Any] = Field(default_factory=dict, description="Extra JSON fields sent with every request")
     # http
     url: str | None = None
     reply_field: str = "reply"
-    headers: dict[str, str] = Field(default_factory=dict)
-    body: dict[str, Any] = Field(default_factory=dict, description="Extra JSON fields sent with every request")
-    timeout: float = Field(30.0, gt=0)
-    # simulated
+    session_field: str | None = None
+    # simulated (required) / openai (optional system message)
     system_prompt: str | None = None
     system_prompt_file: str | None = None
+    # openai-compatible
+    base_url: str | None = None
+    model: str | None = None
+    api_key_env: str | None = None
+    # dialogflow_cx
+    agent: str | None = None
+    environment: str | None = None
+    language_code: str = "en"
+    # cx_agent_studio
+    app: str | None = None
+    deployment: str | None = None
+    entry_agent: str | None = None
+    use_tool_fakes: bool = False
+    api_version: str = "v1"
+    # google (both)
+    access_token: str | None = None
+    quota_project: str | None = None
+    endpoint: str | None = None
 
     @model_validator(mode="after")
     def _check(self) -> TargetSpec:
-        if self.type == "http" and not self.url:
-            raise ValueError("target.url is required when target.type is 'http'")
+        required = {
+            "http": ["url"],
+            "simulated": [],
+            "openai": ["base_url", "model"],
+            "dialogflow_cx": ["agent"],
+            "cx_agent_studio": ["app"],
+        }[self.type]
+        missing = [f for f in required if not getattr(self, f)]
+        if missing:
+            raise ValueError(f"target.{', target.'.join(missing)} required when target.type is '{self.type}'")
         if self.type == "simulated" and not (self.system_prompt or self.system_prompt_file):
             raise ValueError("target.system_prompt (or system_prompt_file) is required when target.type is 'simulated'")
+        if self.type == "dialogflow_cx" and ("/agents/" not in (self.agent or "") or not self.agent.startswith("projects/")):
+            raise ValueError("target.agent must look like projects/P/locations/L/agents/AGENT_ID")
+        if self.type == "cx_agent_studio" and ("/apps/" not in (self.app or "") or not self.app.startswith("projects/")):
+            raise ValueError("target.app must look like projects/P/locations/L/apps/APP_ID")
         return self
 
 
+_ROLE_NAMES = {"generator", "simulator", "judge"}
+
+
+class JudgeProviderSpec(BaseModel):
+    """Optional: judge with a different provider than the one generating and simulating."""
+
+    name: str
+    model: str | None = None
+    api_key_env: str | None = None
+    vertexai: bool = False
+    project: str | None = None
+    location: str | None = None
+
+
 class ProviderSpec(BaseModel):
-    name: str = "anthropic"
+    name: Literal["anthropic", "gemini"] = "anthropic"
     api_key_env: str | None = None
     models: dict[str, str] = Field(default_factory=dict)
+    # gemini only
+    vertexai: bool = False
+    project: str | None = None
+    location: str | None = None
+    thinking: dict[str, str] = Field(default_factory=dict, description="Gemini thinking level per role")
+    judge: JudgeProviderSpec | None = None
 
-    @field_validator("models")
+    @field_validator("models", "thinking")
     @classmethod
     def _roles(cls, v: dict[str, str]) -> dict[str, str]:
-        bad = set(v) - {"generator", "simulator", "judge"}
+        bad = set(v) - _ROLE_NAMES
         if bad:
             raise ValueError(f"unknown model role(s) {sorted(bad)}; use generator, simulator, judge")
         return v

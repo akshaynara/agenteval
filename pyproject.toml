@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agenteval"
-version = "0.3.0"
+version = "0.4.0"
 description = "Red-team and stress-test conversational AI agents with synthetic customers and safety probes — from your terminal, your CI, or the browser."
 readme = "README.md"
 license = "MIT"
@@ -32,7 +32,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.5"]
+# Gemini provider + Dialogflow CX / CX Agent Studio targets
+google = ["google-genai>=2.30,<3", "google-auth>=2.30"]
+dev = ["pytest>=8.0", "ruff>=0.5", "google-genai>=2.30,<3", "google-auth>=2.30"]
 
 [project.scripts]
 agenteval = "agenteval.cli:main"

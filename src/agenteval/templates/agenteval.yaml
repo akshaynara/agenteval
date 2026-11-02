@@ -8,7 +8,7 @@ domain: "Banking — Fraud & Card Services"   # be specific: it shapes every per
 
 # ── The agent under test ────────────────────────────────────────────────
 target:
-  type: http                       # http | simulated
+  type: http                       # http | simulated | openai | dialogflow_cx | cx_agent_studio
   url: http://localhost:9000/chat  # try it: run `agenteval demo-agent` in another terminal
   reply_field: reply               # where the reply is in your JSON; dotted paths work: choices.0.message.content
   # headers:
@@ -16,17 +16,34 @@ target:
   # body:                          # extra JSON fields sent with every request
   #   channel: web
 
+  # session_field: session_id      # send a fresh id per test conversation (stateful agents)
+
   # No endpoint yet? Test the system prompt instead:
   # type: simulated
   # system_prompt_file: prompts/agent.md
 
+  # Other connectors (pip install "agenteval[google]" for the Google ones):
+  # type: cx_agent_studio
+  # app: projects/P/locations/us/apps/APP_ID
+  # use_tool_fakes: true
+  #
+  # type: dialogflow_cx
+  # agent: projects/P/locations/global/agents/AGENT_ID
+  #
+  # type: openai                      # any OpenAI-compatible /chat/completions endpoint
+  # base_url: http://localhost:11434/v1
+  # model: llama3.2
+
 # ── The model that generates, plays and judges the tests ───────────────
 provider:
-  name: anthropic                  # reads ANTHROPIC_API_KEY
+  name: anthropic                  # anthropic (ANTHROPIC_API_KEY) | gemini (GEMINI_API_KEY, free tier available)
   # models:
   #   generator: claude-haiku-4-5-20251001
   #   simulator: claude-haiku-4-5-20251001
   #   judge: claude-sonnet-4-6
+  # judge:                         # optional: grade with a different model family than the one attacking
+  #   name: gemini
+  #   model: gemini-3.8-flash
 
 # ── What to run ─────────────────────────────────────────────────────────
 suites:

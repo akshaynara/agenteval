@@ -13,10 +13,11 @@ from rich.console import Console
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeElapsedColumn
 
 from . import __version__, engine
-from .config import ConfigError, RunConfig, RunSpec, load_config
-from .llm import LLMError, create_llm, default_api_key_env
+from .config import ConfigError, RunSpec, load_config
+from .factory import build_llm, build_target
+from .llm import LLMError
 from .report import load_json, print_report, save_json, to_markdown
-from .targets import HttpTarget, SimulatedTarget, Target
+from .targets import TargetError
 
 EXIT_OK, EXIT_GATE_FAILED, EXIT_USAGE, EXIT_ERROR = 0, 1, 2, 3
 
@@ -67,14 +68,6 @@ def init(
     console.print("  1. export ANTHROPIC_API_KEY=sk-ant-...")
     console.print("  2. agenteval demo-agent          [dim]# in another terminal: a buggy banking agent to test[/]")
     console.print("  3. agenteval run")
-
-
-def _build_target(cfg: RunConfig, llm) -> Target:
-    t = cfg.target
-    if t.type == "http":
-        return HttpTarget(url=t.url or "", reply_field=t.reply_field, headers=t.headers, extra_body=t.body,
-                          timeout=t.timeout)
-    return SimulatedTarget(llm, cfg.system_prompt())
 
 
 class _ProgressPrinter:
@@ -134,12 +127,8 @@ def run(
             cfg.suites.wind_tunnel.personas = personas
         if probes is not None:
             cfg.suites.red_team.probes = probes
-        key_env = cfg.provider.api_key_env or default_api_key_env(cfg.provider.name)
-        api_key = os.environ.get(key_env, "")
-        if not api_key:
-            raise ConfigError(f"Set {key_env} to your {cfg.provider.name} API key (it's only used for this run).")
-        llm = create_llm(cfg.provider.name, api_key, cfg.provider.models)
-        target = _build_target(cfg, llm)
+        llm = build_llm(cfg.provider)
+        target = build_target(cfg, llm)
     except (ConfigError, LLMError, ValueError) as e:
         err.print(f"[red]Error:[/] {e}")
         raise typer.Exit(EXIT_USAGE) from None
@@ -172,6 +161,9 @@ def run(
                 fail_on=cfg.run.fail_on,
                 on_event=_ProgressPrinter(progress, quiet),
             )
+    except TargetError as e:
+        err.print(f"[red]Can't reach your agent:[/] {e}")
+        raise typer.Exit(EXIT_ERROR) from None
     except (LLMError, ValueError) as e:
         err.print(f"[red]Run failed:[/] {e}")
         raise typer.Exit(EXIT_ERROR) from None

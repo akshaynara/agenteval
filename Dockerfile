@@ -4,7 +4,7 @@ WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 COPY frontend ./frontend
-RUN pip install --no-cache-dir . && useradd --create-home agenteval
+RUN pip install --no-cache-dir ".[google]" && useradd --create-home agenteval
 USER agenteval
 WORKDIR /work
 

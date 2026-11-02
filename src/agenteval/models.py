@@ -7,7 +7,7 @@ deployed frontend keeps working.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -54,7 +54,8 @@ class TestConfig(BaseModel):
 
     __test__ = False  # not a pytest test class
 
-    api_key: str = Field(..., description="User's Anthropic API key (BYOK)")
+    api_key: str = Field(..., description="User's API key for the chosen provider (BYOK)")
+    provider: Literal["anthropic", "gemini"] = "anthropic"
     domain: str = Field(..., description="e.g. 'Banking — Fraud & Card Services'")
     agent: AgentConfig
     num_personas: int = Field(10, ge=1, le=50)
@@ -64,7 +65,8 @@ class TestConfig(BaseModel):
 class RAITestConfig(BaseModel):
     """A full RAI safety red-team test request."""
 
-    api_key: str = Field(..., description="User's Anthropic API key (BYOK)")
+    api_key: str = Field(..., description="User's API key for the chosen provider (BYOK)")
+    provider: Literal["anthropic", "gemini"] = "anthropic"
     domain: str = Field(..., description="e.g. 'Banking — Fraud & Card Services'")
     agent: AgentConfig
     num_probes: int = Field(10, ge=1, le=50)
@@ -101,6 +103,9 @@ class RAIProbe(BaseModel):
 class Turn(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+    # What the platform reported about this agent turn (matched intent, page, tool calls, ...).
+    # Shown to the judge, never to the simulated customer.
+    meta: dict[str, Any] | None = None
 
 
 # ─── Findings & reports ────────────────────────────────────────────────────

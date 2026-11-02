@@ -28,14 +28,20 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from . import __version__, engine
 from .llm import LLM, LLMError, create_llm
 from .models import RAITestConfig, TestConfig
-from .targets import target_from_agent_config
+from .targets import TargetError, target_from_agent_config
 
 WEB_CONCURRENCY = int(os.environ.get("AGENTEVAL_WEB_CONCURRENCY", "3"))
+# Free Gemini keys have low per-minute limits; fewer parallel conversations avoids hitting them.
+GEMINI_WEB_CONCURRENCY = int(os.environ.get("AGENTEVAL_GEMINI_WEB_CONCURRENCY", "2"))
+
+
+def _concurrency(provider: str) -> int:
+    return GEMINI_WEB_CONCURRENCY if provider == "gemini" else WEB_CONCURRENCY
 _ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("AGENTEVAL_CORS_ORIGINS", "*").split(",") if o.strip()]
 
 
-def _default_llm_factory(api_key: str) -> LLM:
-    return create_llm("anthropic", api_key)
+def _default_llm_factory(api_key: str, provider: str = "anthropic") -> LLM:
+    return create_llm(provider, api_key)
 
 
 class _Cancelled(Exception):
@@ -54,7 +60,7 @@ def _find_web_dir() -> Path | None:
     return None
 
 
-def create_app(llm_factory: Callable[[str], LLM] = _default_llm_factory) -> FastAPI:
+def create_app(llm_factory: Callable[[str, str], LLM] = _default_llm_factory) -> FastAPI:
     app = FastAPI(title="AgentEval", version=__version__)
     app.add_middleware(CORSMiddleware, allow_origins=_ALLOWED_ORIGINS, allow_methods=["*"], allow_headers=["*"])
     app.state.llm_factory = llm_factory
@@ -77,7 +83,7 @@ def create_app(llm_factory: Callable[[str], LLM] = _default_llm_factory) -> Fast
                 events.put(("status", {"message": done_message, "done": True}))
             except _Cancelled:
                 pass
-            except LLMError as e:
+            except (LLMError, TargetError) as e:
                 events.put(("error", {"message": str(e)}))
             except Exception as e:  # surface everything else to the UI
                 events.put(("error", {"message": str(e), "detail": traceback.format_exc()[-500:]}))
@@ -104,20 +110,20 @@ def create_app(llm_factory: Callable[[str], LLM] = _default_llm_factory) -> Fast
     @app.post("/run-test")
     def run_test(config: TestConfig) -> StreamingResponse:
         def job(on_event: engine.EventHandler) -> None:
-            llm = app.state.llm_factory(config.api_key)
+            llm = app.state.llm_factory(config.api_key, config.provider)
             target = target_from_agent_config(config.agent, llm)
             engine.run_wind_tunnel(llm, target, config.domain, config.num_personas, config.turns_per_conversation,
-                                   concurrency=WEB_CONCURRENCY, on_event=on_event)
+                                   concurrency=_concurrency(config.provider), on_event=on_event)
 
         return stream(job, "Test complete.")
 
     @app.post("/run-rai-test")
     def run_rai_test(config: RAITestConfig) -> StreamingResponse:
         def job(on_event: engine.EventHandler) -> None:
-            llm = app.state.llm_factory(config.api_key)
+            llm = app.state.llm_factory(config.api_key, config.provider)
             target = target_from_agent_config(config.agent, llm)
             engine.run_red_team(llm, target, config.domain, list(config.categories), config.num_probes,
-                                config.turns_per_conversation, concurrency=WEB_CONCURRENCY, on_event=on_event)
+                                config.turns_per_conversation, concurrency=_concurrency(config.provider), on_event=on_event)
 
         return stream(job, "RAI test complete.")
 

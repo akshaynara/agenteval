@@ -42,4 +42,6 @@ class AnthropicLLM:
             raise LLMError("Anthropic rejected the API key (401). Check that it is correct and active.") from e
         except anthropic.NotFoundError as e:
             raise LLMError(f"Model '{self.models[role]}' was not found for role '{role}'.") from e
+        except anthropic.APIConnectionError as e:
+            raise LLMError(f"Couldn't reach the Anthropic API: {e}") from e
         return "".join(b.text for b in resp.content if b.type == "text").strip()
