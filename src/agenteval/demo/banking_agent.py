@@ -18,8 +18,12 @@ Bugs planted (matching Akshay's real war stories):
 
 This is a deliberately simple rule-based agent (no LLM) so its behavior is
 deterministic and the Wind Tunnel's findings are reproducible.
+
+`agenteval demo-agent --fixed` (or AGENTEVAL_DEMO_FIXED=1) serves the same agent with
+all four bugs fixed — run it after a baseline to demo regression mode on stage.
 """
 
+import os
 import re
 
 from fastapi import FastAPI
@@ -58,6 +62,30 @@ class ChatResponse(BaseModel):
     intent: str
     routed_to: str
     confidence: float
+
+
+FRAUD_SIGNALS = ("fraud", "stolen", "unauthori", "didn't make", "did not make", "not me", "wasn't me",
+                 "don't recognize", "don't recognise", "someone used", "lost my card", "hacked", "scam")
+
+
+def fixed_mode() -> bool:
+    return os.environ.get("AGENTEVAL_DEMO_FIXED", "").lower() in ("1", "true", "yes")
+
+
+def classify_intent_fixed(text: str) -> tuple[str, str, float]:
+    """The fixed classifier: fraud signals win, and unclear requests escalate instead of guessing."""
+    t = text.lower()
+    if any(s in t for s in FRAUD_SIGNALS):
+        return ("fraud", "Fraud Team", 0.92)
+    if "card" in t and ("block" in t or "blocked" in t):
+        return ("card_blocked_unclear", "Confirm with customer", 0.5)
+    if "balance" in t or "how much" in t:
+        return ("balance_inquiry", "Balance Service", 0.85)
+    if "transfer" in t or "send money" in t:
+        return ("money_transfer", "Transfer Service", 0.8)
+    if "loan" in t or "emi" in t:
+        return ("loan_inquiry", "Loan Department", 0.8)
+    return ("unclear", "Human agent", 0.3)
 
 
 def classify_intent(text: str) -> tuple[str, str, float]:
@@ -110,6 +138,8 @@ def chat(req: ChatRequest) -> ChatResponse:
         )
 
     first_user_text = user_messages[0].content
+    if fixed_mode():
+        return _chat_fixed(user_messages[-1].content)
     latest_user_text = user_messages[-1].content
 
     # BUG 2: PII leak — if any account number appears anywhere, confirm the
@@ -160,3 +190,25 @@ def root():
         "warning": "Contains intentional bugs for AgentEval testing",
         "endpoint": "POST /chat",
     }
+
+
+def _chat_fixed(latest: str) -> ChatResponse:
+    """All four bugs fixed: latest message wins, fraud first, no PII before verification, escalate when unsure."""
+    if find_account_number(latest):
+        return ChatResponse(
+            reply=("For your security I can't confirm any details on an account over chat. "
+                   "I'll send a one-time code to the phone number registered on the account — can you read it back to me?"),
+            intent="account_lookup", routed_to="Identity Verification", confidence=0.9)
+    intent, routed_to, confidence = classify_intent_fixed(latest)
+    replies = {
+        "fraud": ("I'm sorry — that sounds like fraud. I've frozen your card right now so no new charges can go "
+                  "through, and I'm connecting you to our Fraud Team on priority."),
+        "card_blocked_unclear": ("I can help with a blocked card. To route you correctly: did you or someone you "
+                                 "know make the recent transactions, or do you not recognise them?"),
+        "balance_inquiry": "I can help with your balance once I've verified your identity. I'll send you a one-time code.",
+        "money_transfer": "I can help you with a transfer. Who would you like to send money to, and how much?",
+        "loan_inquiry": "I'll connect you with our Loan Department.",
+        "unclear": ("I want to make sure I get this right, so I'm connecting you with a colleague who can help. "
+                    "Could you tell me a bit more about what you need while I do that?"),
+    }
+    return ChatResponse(reply=replies[intent], intent=intent, routed_to=routed_to, confidence=confidence)

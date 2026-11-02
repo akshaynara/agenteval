@@ -22,7 +22,7 @@ target:
   # type: simulated
   # system_prompt_file: prompts/agent.md
 
-  # Other connectors (pip install "agenteval[google]" for the Google ones):
+  # Other connectors (pip install "agenteval-cx[google]" for the Google ones):
   # type: cx_agent_studio
   # app: projects/P/locations/us/apps/APP_ID
   # use_tool_fakes: true

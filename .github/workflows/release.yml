@@ -1,0 +1,62 @@
+name: Release
+
+# Push a tag like v1.0.0 to publish to PyPI and create a GitHub release.
+# One-time setup: see RELEASING.md (PyPI trusted publishing, no API token needed).
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the tag matches the package version
+        run: |
+          version=$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "Tag $GITHUB_REF_NAME != pyproject version $version"; exit 1; }
+      - run: pip install build && python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Create the release (notes from CHANGELOG.md)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '$0 ~ "^## \\[?"v {f=1; next} /^## / {f=0} f' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --title "AgentEval $GITHUB_REF_NAME" --notes-file notes.md
+      - name: "Move the major-version tag, so `uses: akshaynara/agenteval@v1` gets this release"
+        run: |
+          major="${GITHUB_REF_NAME%%.*}"
+          git tag -f "$major" && git push -f origin "$major"

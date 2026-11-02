@@ -217,7 +217,7 @@ class _GoogleToken:
                     import google.auth.transport.requests  # noqa: F401
                 except ImportError as e:
                     raise TargetError(
-                        'Google targets need google-auth: pip install "agenteval[google]" '
+                        'Google targets need google-auth: pip install "agenteval-cx[google]" '
                         "(or set target.access_token, e.g. from `gcloud auth print-access-token`)."
                     ) from e
                 try:

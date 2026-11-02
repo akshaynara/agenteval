@@ -48,3 +48,17 @@ jobs:
           for i in $(seq 1 30); do curl -sf localhost:8000/health && break; sleep 1; done
           curl -sf localhost:8000/ | grep -q "<title>"
           docker stop ae
+
+  action:
+    # The composite action installs and runs end to end. With no API key it must stop with
+    # a usage error (exit 2) before calling any model.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: ae
+        uses: ./
+        continue-on-error: true
+        with:
+          config: examples/banking-demo/agenteval.yaml
+          upload: "false"
+      - run: test "${{ steps.ae.outputs.exit-code }}" = "2"

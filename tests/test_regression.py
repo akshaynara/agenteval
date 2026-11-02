@@ -151,3 +151,14 @@ def test_cli_compare_exits_1_on_regression(tmp_path, fake_llm):
     r = CliRunner().invoke(cli.app, ["compare", str(tmp_path / "a.json"), str(tmp_path / "b.json")])
     assert r.exit_code == cli.EXIT_GATE_FAILED
     assert "1 regressed" in r.output
+
+
+def test_fixed_demo_agent_turns_failures_into_fixes(fake_llm, monkeypatch):
+    before = demo_run(fake_llm)
+    assert before.summary.severity_counts["critical"] == 2  # PII leaks
+    monkeypatch.setenv("AGENTEVAL_DEMO_FIXED", "1")
+    after = demo_run(FakeLLM(), baseline=before)
+    assert after.comparison.fixed == 2 and after.comparison.regressed == 0
+    assert after.gate.passed
+    reply = after.wind_tunnel.conversations[1].transcript[1].content
+    assert "can't confirm" in reply and "registered to" not in reply

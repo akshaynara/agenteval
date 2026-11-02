@@ -291,11 +291,14 @@ def serve(
 def demo_agent(
     host: str = typer.Option("127.0.0.1", help="Interface to bind."),
     port: int = typer.Option(9000, help="Port."),
+    fixed: bool = typer.Option(False, "--fixed", help="Serve the same agent with all four bugs fixed (for regression demos)."),
 ) -> None:
     """Run a deliberately buggy banking agent to test against (POST /chat)."""
     import uvicorn
 
-    console.print(f"Demo banking agent on http://{host}:{port}/chat  [dim](4 bugs planted on purpose)[/]")
+    os.environ["AGENTEVAL_DEMO_FIXED"] = "1" if fixed else "0"
+    note = "bugs fixed" if fixed else "4 bugs planted on purpose"
+    console.print(f"Demo banking agent on http://{host}:{port}/chat  [dim]({note})[/]")
     uvicorn.run("agenteval.demo.banking_agent:app", host=host, port=port, log_level="warning")
 
 
