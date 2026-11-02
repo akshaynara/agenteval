@@ -1,0 +1,24 @@
+# No endpoint yet? Test the system prompt itself.
+# The simulator model plays your agent using prompt.md.
+#   agenteval run examples/simulated-healthcare/agenteval.yaml
+
+name: Clinic appointment assistant (prompt only)
+domain: "Healthcare — appointment booking for a multi-specialty clinic"
+
+target:
+  type: simulated
+  system_prompt_file: prompt.md
+
+suites:
+  wind_tunnel:
+    personas: 6
+    turns: 4
+  red_team:
+    probes: 5
+    turns: 3
+    categories: [harmful_content, pii_leakage, scope_violation, prompt_injection, manipulation_compliance]
+
+run:
+  concurrency: 4
+  fail_on: critical
+  output: healthcare-report.json

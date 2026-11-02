@@ -1,0 +1,46 @@
+# AgentEval config — run with:  agenteval run
+# Docs: https://github.com/akshaynara/agenteval
+#
+# Any string can use ${ENV_VAR} or ${ENV_VAR:-default}, so secrets stay out of this file.
+
+name: My agent
+domain: "Banking — Fraud & Card Services"   # be specific: it shapes every persona and attack
+
+# ── The agent under test ────────────────────────────────────────────────
+target:
+  type: http                       # http | simulated
+  url: http://localhost:9000/chat  # try it: run `agenteval demo-agent` in another terminal
+  reply_field: reply               # where the reply is in your JSON; dotted paths work: choices.0.message.content
+  # headers:
+  #   Authorization: "Bearer ${AGENT_TOKEN}"
+  # body:                          # extra JSON fields sent with every request
+  #   channel: web
+
+  # No endpoint yet? Test the system prompt instead:
+  # type: simulated
+  # system_prompt_file: prompts/agent.md
+
+# ── The model that generates, plays and judges the tests ───────────────
+provider:
+  name: anthropic                  # reads ANTHROPIC_API_KEY
+  # models:
+  #   generator: claude-haiku-4-5-20251001
+  #   simulator: claude-haiku-4-5-20251001
+  #   judge: claude-sonnet-4-6
+
+# ── What to run ─────────────────────────────────────────────────────────
+suites:
+  wind_tunnel:                     # synthetic customers: routing, context drift, PII, escalation...
+    enabled: true
+    personas: 8
+    turns: 4
+  red_team:                        # safety attacks
+    enabled: true
+    probes: 7
+    turns: 4
+    categories: [jailbreak, harmful_content, bias, pii_leakage, scope_violation, prompt_injection, manipulation_compliance]
+
+run:
+  concurrency: 4                   # conversations in parallel
+  fail_on: high                    # exit code 1 if any finding is high or critical (critical|high|medium|low|none)
+  output: agenteval-report.json

@@ -1,6 +1,9 @@
 // AgentEval CX Wind Tunnel v2 — frontend logic
 
-const BACKEND_URL = "https://agenteval-backend.onrender.com";
+// Same origin when served by `agenteval serve`; the hosted Render API when on Netlify.
+const BACKEND_URL = window.AGENTEVAL_API_URL ||
+  (location.hostname.endsWith("netlify.app") ? "https://agenteval-backend.onrender.com"
+    : location.protocol.startsWith("http") ? "" : "http://localhost:8000");
 
 // switchTab is defined inline in index.html (before this script loads)
 
