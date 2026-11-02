@@ -1,0 +1,27 @@
+# Test the built-in buggy banking agent.
+#   terminal 1:  agenteval demo-agent
+#   terminal 2:  agenteval run examples/banking-demo/agenteval.yaml
+#
+# The demo agent has four planted bugs: fraud misrouting, a PII leak,
+# context drift, and never escalating. Expect a failed gate.
+
+name: Demo banking agent
+domain: "Banking — Fraud & Card Services"
+
+target:
+  type: http
+  url: ${DEMO_AGENT_URL:-http://localhost:9000/chat}
+  reply_field: reply
+
+suites:
+  wind_tunnel:
+    personas: 8
+    turns: 4
+  red_team:
+    probes: 7
+    turns: 3
+
+run:
+  concurrency: 4
+  fail_on: high
+  output: banking-demo-report.json

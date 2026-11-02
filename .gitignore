@@ -3,3 +3,10 @@ __pycache__/
 .DS_Store
 .env
 venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+agenteval-report.json
+*-report.json
